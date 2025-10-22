@@ -24,6 +24,10 @@ let scoreText;
 let gameOver = false;
 let dialogText, dialogBox;
 
+
+let amigo, amigoDialogBox, amigoDialogText;
+
+
 const game = new Phaser.Game(config);
 
 // =============================
@@ -41,9 +45,13 @@ function preload() {
   this.load.spritesheet('dude-reverse', 'assets/player/Wall Jump (32x32).png', { frameWidth: 32, frameHeight: 32 });
   this.load.spritesheet('dude-jump', 'assets/player/Jump (32x32).png', { frameWidth: 32, frameHeight: 32 });
 
-  // 🔥 Spritesheet de monedas (icon.png)
-  // Cambia el frameWidth y frameHeight si tus frames son distintos
+  //  Spritesheet de monedas (icon.png)
+
   this.load.spritesheet('coin', 'assets/dinero/coin.png', { frameWidth: 16, frameHeight: 16 });
+
+
+  //amigo
+  this.load.spritesheet('amigo', 'assets/amigo/Run (32x32).png', {frameWidth: 32, frameHeight: 30})
 }
 
 // =============================
@@ -99,6 +107,50 @@ function create() {
 
   this.physics.add.collider(player, platforms);
   cursors = this.input.keyboard.createCursorKeys();
+
+
+
+ //AMIGO 
+ amigo = this.physics.add.sprite(player.x - 50, player.y, 'amigo');
+amigo.setCollideWorldBounds(true);
+amigo.setBounce(0.2);
+this.physics.add.collider(amigo, platforms);
+
+this.anims.create({
+  key: 'amigo-run',
+  frames: this.anims.generateFrameNumbers('amigo', { start: 0, end: 7 }), // ajusta el rango según tus frames
+  frameRate: 10,
+  repeat: -1
+});
+
+this.anims.create({
+  key: 'amigo-idle',
+  frames: this.anims.generateFrameNumbers('amigo', { start: 0, end: 3 }),
+  frameRate: 6,
+  repeat: -1
+});
+
+// Globo de diálogo del amigo
+const amigoGraphics = this.add.graphics();
+amigoGraphics.fillStyle(0xffffff, 0.9);
+amigoGraphics.lineStyle(2, 0x000000, 1);
+amigoGraphics.fillRoundedRect(0, 0, 200, 50, 10);
+amigoGraphics.strokeRoundedRect(0, 0, 200, 50, 10);
+
+amigoDialogBox = this.add.container(amigo.x, amigo.y - 60);
+amigoDialogBox.add(amigoGraphics);
+
+amigoDialogText = this.add.text(100, 25, '', {
+  fontSize: '14px',
+  color: '#000',
+  fontStyle: 'bold',
+  wordWrap: { width: 180 }
+}).setOrigin(0.5);
+
+amigoDialogBox.add(amigoDialogText);
+amigoDialogBox.setVisible(false);
+
+
 
   // =============================
   //  🔥 MONEDAS ANIMADAS
@@ -159,6 +211,10 @@ function create() {
   }).setOrigin(0.5);
   dialogBox.add(dialogText);
   dialogBox.setVisible(false);
+
+
+  showAmigoDialog(this, '¡Han secuestrado a Motocle! Ayúdanos a encontrarlo xdxd', 5000);
+
 }
 
 // =============================
@@ -172,13 +228,24 @@ function showDialog(scene, message) {
   });
 }
 
+
+function showAmigoDialog(scene, message, duration = 3000) {
+  amigoDialogText.setText(message);
+  amigoDialogBox.setVisible(true);
+
+  scene.time.delayedCall(duration, () => {
+    amigoDialogBox.setVisible(false);
+  });
+}
+
+
 // =============================
 //  ACTUALIZACIÓN CONSTANTE
 // =============================
 function update() {
   if (gameOver) return;
 
-  // Movimiento lateral
+  // Movimiento lateral de jugador
   if (cursors.left.isDown) {
     player.setVelocityX(-160);
     player.anims.play('left', true);
@@ -194,8 +261,14 @@ function update() {
   if (cursors.up.isDown && player.body.touching.down) {
     player.setVelocityY(-330);
     player.anims.play('jump', true);
+
+      // 🐾 Amigo salta también
+  if (amigo.body.touching.down) {
+    amigo.setVelocityY(-330);
+  }
   }
 
+  
   // Mostrar diálogo con ESPACIO
   if (Phaser.Input.Keyboard.JustDown(cursors.space)) {
     showDialog(this, '¡salchicha!');
@@ -205,6 +278,59 @@ function update() {
   if (dialogBox.visible) {
     dialogBox.setPosition(player.x, player.y - 60);
   }
+
+
+
+
+  // =============================
+//  MOVIMIENTO DEL AMIGO
+// =============================
+
+// =============================
+// MOVIMIENTO INTELIGENTE DEL AMIGO
+// =============================
+const diffX = player.x - amigo.x;
+const diffY = player.y - amigo.y;
+const velocidad = 120;
+const distanciaMinima = 50;
+
+if (Math.abs(diffX) > distanciaMinima) {
+  // Mover horizontal
+  if (diffX > 0) {
+    amigo.setVelocityX(velocidad);
+    amigo.setFlipX(false);
+  } else {
+    amigo.setVelocityX(-velocidad);
+    amigo.setFlipX(true);
+  }
+  amigo.anims.play('amigo-run', true);
+
+  // Saltar solo si es necesario para subir plataformas alcanzables
+  if (diffY < -20 && amigo.body.touching.down) {
+    const puedeSubir = platforms.getChildren().some(p => {
+      const bounds = p.getBounds();
+      return Phaser.Geom.Rectangle.Contains(bounds, amigo.x + (diffX > 0 ? 16 : -16), amigo.y + 32);
+    });
+    if (puedeSubir) {
+      amigo.setVelocityY(-250); // salto controlado
+    }
+  }
+
+} else {
+  amigo.setVelocityX(0);
+  amigo.anims.play('amigo-idle', true);
+}
+
+// =============================
+// ACTUALIZAR POSICIÓN DEL DIÁLOGO
+// =============================
+if (amigoDialogBox.visible) {
+  amigoDialogBox.setPosition(amigo.x, amigo.y - 60);
+}
+
+
+
+
 }
 
 // =============================
@@ -233,6 +359,8 @@ function collectCoin(player, coin) {
     bomb.setCollideWorldBounds(true);
     bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
   }
+ 
+
 }
 
 // =============================
