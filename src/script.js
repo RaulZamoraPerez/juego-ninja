@@ -29,6 +29,11 @@ let score = 0;
 let scoreText;
 let gameOver = false;
 
+
+let dialogText;
+let dialogBox;
+
+
 // Inicializa el juego
 const game = new Phaser.Game(config);
 
@@ -130,10 +135,43 @@ function create() {    // --- donde se crean los objetos del juego --
 
 
 
+// Crear un globo de diálogo (inicialmente oculto)
+const graphics = this.add.graphics();
+graphics.fillStyle(0xffffff, 0.9); // color de fondo blanco con opacidad
+graphics.lineStyle(2, 0x000000, 1); // borde negro
+graphics.fillRoundedRect(0, 0, 120, 40, 10);
+graphics.strokeRoundedRect(0, 0, 120, 40, 10);
+
+// Convertirlo en un objeto de imagen y esconderlo
+dialogBox = this.add.container(player.x, player.y - 60);
+dialogBox.add(graphics);
+
+// Texto dentro del globo
+dialogText = this.add.text(60, 20, 'Hola amigos', {
+  fontSize: '16px',
+  color: '#000',
+  fontStyle: 'bold',
+}).setOrigin(0.5);
+dialogBox.add(dialogText);
+
+// Ocultar el diálogo al inicio
+dialogBox.setVisible(false);
 
 
 
 }
+
+
+function showDialog(scene, message) {
+  dialogText.setText(message);
+  dialogBox.setVisible(true);
+  
+  // Desaparece después de 2 segundos
+  scene.time.delayedCall(2000, () => {
+    dialogBox.setVisible(false);
+  });
+}
+
 
 function update()  { //--- lógica del juego que se ejecuta en cada frame --
    if (gameOver) return;
@@ -157,6 +195,19 @@ function update()  { //--- lógica del juego que se ejecuta en cada frame --
     player.anims.play('jump', true);
 
   }
+  if (Phaser.Input.Keyboard.JustDown(cursors.space)) {
+  showDialog(this, 'xD');
+}
+
+
+
+
+
+  // Hacer que el globo de diálogo siga al jugador
+if (dialogBox.visible) {
+  dialogBox.setPosition(player.x, player.y - 60);
+}
+
 }
 
 function collectStar(player, star) { //--- lógica al recolectar una estrella --
