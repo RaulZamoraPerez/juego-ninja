@@ -1,74 +1,74 @@
-
-
-// Configuración principal del juego
+// =============================
+//  CONFIGURACIÓN PRINCIPAL
+// =============================
 const config = {
   type: Phaser.AUTO,
   width: 800,
   height: 600,
-  physics: {     //fisicas sjjs
+  physics: {
     default: 'arcade',
     arcade: {
       gravity: { y: 300 },
       debug: false
     }
   },
-  scene: {
-    preload,
-    create,
-    update
-  }
+  scene: { preload, create, update }
 };
 
-// Variables globales del juego
-let player;
-let platforms;
-let stars;
-let bombs;
-let cursors;
+// =============================
+//  VARIABLES GLOBALES
+// =============================
+let player, platforms, coins, bombs, cursors;
 let score = 0;
 let scoreText;
 let gameOver = false;
+let dialogText, dialogBox;
 
-
-let dialogText;
-let dialogBox;
-
-
-// Inicializa el juego
 const game = new Phaser.Game(config);
 
-function preload() {                         //--- donde se cargan los assets --
-  // Cargar imágenes y sprites
-  this.load.image('sky', 'assets/sky.png');
-  this.load.image('ground', 'assets/platform.png');
-  this.load.image('star', 'assets/star.png');
+// =============================
+//  CARGA DE ASSETS
+// =============================
+function preload() {
+  // Fondo y plataformas
+  this.load.image('sky', 'assets/fondo.png');
+  this.load.image('ground', 'assets/Brown On (32x8).png');
   this.load.image('bomb', 'assets/bomb.png');
-  this.load.spritesheet('quieto', 'assets/player/Idle (32x32).png', { frameWidth: 32, frameHeight: 32 });//quieto
-  this.load.spritesheet('dude', 'assets/player/Run (32x32).png', { frameWidth: 32, frameHeight: 32 });//derecha
-  this.load.spritesheet('dude-reverse', 'assets/player/Wall Jump (32x32).png', { frameWidth: 32, frameHeight: 32 }); //izquierda
 
-  this.load.spritesheet('dude-jump', 'assets/player/Jump (32x32).png', { frameWidth: 32, frameHeight: 32 }); //salto
+  // Sprites del jugador
+  this.load.spritesheet('quieto', 'assets/player/Idle (32x32).png', { frameWidth: 32, frameHeight: 32 });
+  this.load.spritesheet('dude', 'assets/player/Run (32x32).png', { frameWidth: 32, frameHeight: 32 });
+  this.load.spritesheet('dude-reverse', 'assets/player/Wall Jump (32x32).png', { frameWidth: 32, frameHeight: 32 });
+  this.load.spritesheet('dude-jump', 'assets/player/Jump (32x32).png', { frameWidth: 32, frameHeight: 32 });
 
-  
+  // 🔥 Spritesheet de monedas (icon.png)
+  // Cambia el frameWidth y frameHeight si tus frames son distintos
+  this.load.spritesheet('coin', 'assets/dinero/coin.png', { frameWidth: 16, frameHeight: 16 });
 }
 
-function create() {    // --- donde se crean los objetos del juego --
+// =============================
+//  CREACIÓN DE OBJETOS
+// =============================
+function create() {
   // Fondo
-  this.add.image(400, 300, 'sky');
+  this.add.image(config.width / 2, config.height / 2, 'sky');
 
-  // Plataformas estáticas
+  // Plataformas
   platforms = this.physics.add.staticGroup();
-  platforms.create(400, 568, 'ground').setScale(2).refreshBody();
-  platforms.create(600, 400, 'ground');
-  platforms.create(50, 250, 'ground');
-  platforms.create(750, 220, 'ground');
+  platforms.create(256, 568, 'ground').setScale(3).refreshBody();
+  platforms.create(250, 400, 'ground');
+  platforms.create(50, 300, 'ground');
+  platforms.create(400, 250, 'ground');
+  platforms.create(750, 150, 'ground');
 
   // Jugador
   player = this.physics.add.sprite(100, 450, 'dude');
   player.setBounce(0.2);
   player.setCollideWorldBounds(true);
 
-  //------------------------- Animaciones del jugador  XD-----------------------
+  // =============================
+  //  ANIMACIONES DEL JUGADOR
+  // =============================
   this.anims.create({
     key: 'left',
     frames: this.anims.generateFrameNumbers('dude-reverse', { start: 0, end: 3 }),
@@ -76,10 +76,7 @@ function create() {    // --- donde se crean los objetos del juego --
     repeat: -1
   });
 
-  
-
-
-  this.anims.create({ //quieto
+  this.anims.create({
     key: 'idle',
     frames: this.anims.generateFrameNumbers('quieto', { start: 0, end: 3 }),
     frameRate: 5,
@@ -93,90 +90,95 @@ function create() {    // --- donde se crean los objetos del juego --
     repeat: -1
   });
 
-
-  this.anims.create({ //salto
+  this.anims.create({
     key: 'jump',
     frames: this.anims.generateFrameNumbers('dude-jump', { start: 0, end: 1 }),
     frameRate: 10,
     repeat: -1
   });
 
-  // Colisión entre jugador y plataformas
   this.physics.add.collider(player, platforms);
-
-  // Controles de teclado
   cursors = this.input.keyboard.createCursorKeys();
 
-  //-------------------------------------------- Estrellas (coleccionables)------
-  stars = this.physics.add.group({
-    key: 'star',
+  // =============================
+  //  🔥 MONEDAS ANIMADAS
+  // =============================
+  this.anims.create({
+    key: 'spin',
+    frames: this.anims.generateFrameNumbers('coin', { start: 0, end: 7 }), // ajusta según tu spritesheet
+    frameRate: 10,
+    repeat: -1
+  });
+
+  // Grupo de monedas
+  coins = this.physics.add.group({
+    key: 'coin',
     repeat: 11,
     setXY: { x: 12, y: 0, stepX: 70 }
   });
 
-  stars.children.iterate(star => {
-    star.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+  coins.children.iterate(coin => {
+    coin.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+    coin.play('spin'); // animación de giro
   });
 
-  this.physics.add.collider(stars, platforms);
-  this.physics.add.overlap(player, stars, collectStar, null, this);
+  this.physics.add.collider(coins, platforms);
+  this.physics.add.overlap(player, coins, collectCoin, null, this);
 
-  // -------------------------------------------Texto de puntuación
+  // =============================
+  //  PUNTUACIÓN
+  // =============================
   scoreText = this.add.text(16, 16, 'Score: 0', {
     fontSize: '32px',
-    fill: '#000'
+    fill: 'white'
   });
 
-  // Bombas (enemigos)
+  // =============================
+  //  BOMBAS (ENEMIGOS)
+  // =============================
   bombs = this.physics.add.group();
   this.physics.add.collider(bombs, platforms);
   this.physics.add.collider(player, bombs, hitBomb, null, this);
 
+  // =============================
+  //  GLOBO DE DIÁLOGO
+  // =============================
+  const graphics = this.add.graphics();
+  graphics.fillStyle(0xffffff, 0.9);
+  graphics.lineStyle(2, 0x000000, 1);
+  graphics.fillRoundedRect(0, 0, 120, 40, 10);
+  graphics.strokeRoundedRect(0, 0, 120, 40, 10);
 
+  dialogBox = this.add.container(player.x, player.y - 60);
+  dialogBox.add(graphics);
 
-
-// Crear un globo de diálogo (inicialmente oculto)
-const graphics = this.add.graphics();
-graphics.fillStyle(0xffffff, 0.9); // color de fondo blanco con opacidad
-graphics.lineStyle(2, 0x000000, 1); // borde negro
-graphics.fillRoundedRect(0, 0, 120, 40, 10);
-graphics.strokeRoundedRect(0, 0, 120, 40, 10);
-
-// Convertirlo en un objeto de imagen y esconderlo
-dialogBox = this.add.container(player.x, player.y - 60);
-dialogBox.add(graphics);
-
-// Texto dentro del globo
-dialogText = this.add.text(60, 20, 'Hola amigos', {
-  fontSize: '16px',
-  color: '#000',
-  fontStyle: 'bold',
-}).setOrigin(0.5);
-dialogBox.add(dialogText);
-
-// Ocultar el diálogo al inicio
-dialogBox.setVisible(false);
-
-
-
+  dialogText = this.add.text(60, 20, 'Hola amigos', {
+    fontSize: '16px',
+    color: '#000',
+    fontStyle: 'bold',
+  }).setOrigin(0.5);
+  dialogBox.add(dialogText);
+  dialogBox.setVisible(false);
 }
 
-
+// =============================
+//  MOSTRAR DIÁLOGO
+// =============================
 function showDialog(scene, message) {
   dialogText.setText(message);
   dialogBox.setVisible(true);
-  
-  // Desaparece después de 2 segundos
   scene.time.delayedCall(2000, () => {
     dialogBox.setVisible(false);
   });
 }
 
+// =============================
+//  ACTUALIZACIÓN CONSTANTE
+// =============================
+function update() {
+  if (gameOver) return;
 
-function update()  { //--- lógica del juego que se ejecuta en cada frame --
-   if (gameOver) return;
-
-  // Movimiento horizontal
+  // Movimiento lateral
   if (cursors.left.isDown) {
     player.setVelocityX(-160);
     player.anims.play('left', true);
@@ -186,68 +188,63 @@ function update()  { //--- lógica del juego que se ejecuta en cada frame --
   } else {
     player.setVelocityX(0);
     player.anims.play('idle', true);
-    
   }
 
   // Salto
   if (cursors.up.isDown && player.body.touching.down) {
     player.setVelocityY(-330);
     player.anims.play('jump', true);
-
   }
+
+  // Mostrar diálogo con ESPACIO
   if (Phaser.Input.Keyboard.JustDown(cursors.space)) {
-  showDialog(this, 'xD');
+    showDialog(this, '¡salchicha!');
+  }
+
+  // Seguir al jugador con el globo
+  if (dialogBox.visible) {
+    dialogBox.setPosition(player.x, player.y - 60);
+  }
 }
 
-
-
-
-
-  // Hacer que el globo de diálogo siga al jugador
-if (dialogBox.visible) {
-  dialogBox.setPosition(player.x, player.y - 60);
-}
-
-}
-
-function collectStar(player, star) { //--- lógica al recolectar una estrella --
-  star.disableBody(true, true);
+// =============================
+//  RECOLECTAR MONEDA
+// =============================
+function collectCoin(player, coin) {
+  coin.disableBody(true, true);
   score += 100;
   scoreText.setText(`Score: ${score}`);
 
-  // Si todas las estrellas se recolectan
-  if (stars.countActive(true) === 0) {
-    stars.children.iterate(child => {
+  // Si ya no hay monedas activas, reiniciar y agregar bomba
+  if (coins.countActive(true) === 0) {
+    coins.children.iterate(child => {
       child.enableBody(true, child.x, 0, true, true);
+      child.play('spin');
     });
 
-    // Generar una nueva bomba
     const x = player.x < 400
       ? Phaser.Math.Between(400, 800)
       : Phaser.Math.Between(0, 400);
 
+      //
+    
     const bomb = bombs.create(x, 16, 'bomb');
     bomb.setBounce(1);
     bomb.setCollideWorldBounds(true);
     bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
   }
-
-  
 }
 
-function hitBomb(player, bomb) { //--- lógica al chocar con una bomba --
+// =============================
+//  COLISIÓN CON BOMBA
+// =============================
+function hitBomb(player, bomb) {
   this.physics.pause();
   player.setTint(0xff0000);
-  player.anims.play('turn');
   gameOver = true;
 
-  // Texto de fin de juego
   this.add.text(300, 250, 'GAME OVER', {
     fontSize: '48px',
     fill: '#ff0000'
   });
 }
-
-
-
-
