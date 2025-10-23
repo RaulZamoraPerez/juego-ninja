@@ -1,21 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>juego</title>
+    <title>🥷 Ninja Rescue - La Aventura de Motocle</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #333;
+            border-radius: 10px;
+        }
+        #loading {
+            color: white;
+            text-align: center;
+            font-size: 24px;
+        }
+    </style>
 </head>
-
-<style>
-    body{
-        margin: 0;
-        background: 000000;
-    }
-</style>
 <body>
-
-
-    <script src="//cdn.jsdelivr.net/npm/phaser@3.88.2/dist/phaser.min.js"></script>
-    <script src="src/script.js"></script>
+    <div id="loading">🎮 Cargando Ninja Rescue...</div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    
+    <!-- CARGAR TODAS LAS ESCENAS EN ORDEN -->
+    <script src="src/scenes/IntroScene.js"></script>
+    <script src="src/scenes/MenuScene.js"></script>
+    <script src="src/scenes/GameScene.js"></script>
+    <script type="module" src="src/game.js"></script>
 </body>
 </html>
