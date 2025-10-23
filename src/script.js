@@ -56,7 +56,7 @@ function preload() {
 
 
   //animales
-  this.load.spritesheet('gallina', 'assets/animales/gallina/Run (32x32).png', { frameWidth: 32, frameHeight: 34 });
+  this.load.spritesheet('gallina', 'assets/animales/gallina/Run (32x34).png', { frameWidth: 32, frameHeight: 34 });
 }
 
 // =============================
@@ -75,6 +75,7 @@ function create() {
   platforms.create(50, 300, 'ground');
   platforms.create(400, 250, 'ground');
   platforms.create(750, 150, 'ground');
+  
 
   // Jugador
   player = this.physics.add.sprite(100, 450, 'dude');
@@ -235,6 +236,19 @@ amigoDialogBox.setVisible(false);
   this.keyP = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
 
   
+  // Crear la gallina
+// ======= create =======
+gallina = this.physics.add.sprite(500, 534, 'gallina'); // posición inicial
+gallina.setCollideWorldBounds(true); 
+gallina.body.allowGravity = false; // no cae
+gallina.setVelocityX(50); // velocidad inicial
+this.physics.add.collider(gallina, platforms);
+
+// Animación de caminar constante
+gallina.anims.play('gallina-correr', true);
+
+
+
 }
 
 // =============================
@@ -368,6 +382,20 @@ if (Phaser.Input.Keyboard.JustDown(this.keyP) && player.body.touching.down) {
     }
   });
 }
+
+
+// ======= update =======
+// Movimiento automático de la gallina
+// Movimiento automático de la gallina
+if (gallina.body.blocked.right) {
+    gallina.setVelocityX(-50); // ir a la izquierda
+} else if (gallina.body.blocked.left) {
+    gallina.setVelocityX(50); // ir a la derecha
+}
+
+// Ajustar flip según la dirección correcta para tu spritesheet
+gallina.setFlipX(gallina.body.velocity.x > 0); 
+// Si la velocidad es positiva (derecha), flipX = true (voltea la imagen)
 
 
 
