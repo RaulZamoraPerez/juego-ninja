@@ -42,22 +42,29 @@ function preload() {
   // Sprites del jugador
   this.load.spritesheet('quieto', 'assets/player/Idle (32x32).png', { frameWidth: 32, frameHeight: 32 });
   this.load.spritesheet('dude', 'assets/player/Run (32x32).png', { frameWidth: 32, frameHeight: 32 });
-  this.load.spritesheet('dude-reverse', 'assets/player/Wall Jump (32x32).png', { frameWidth: 32, frameHeight: 32 });
-  this.load.spritesheet('dude-jump', 'assets/player/Jump (32x32).png', { frameWidth: 32, frameHeight: 32 });
+  this.load.spritesheet('dude-jump', 'assets/player/Double Jump (32x32).png', { frameWidth: 32, frameHeight: 32 });
 
-  //  Spritesheet de monedas (icon.png)
+  
 
   this.load.spritesheet('coin', 'assets/dinero/coin.png', { frameWidth: 16, frameHeight: 16 });
 
 
   //amigo
   this.load.spritesheet('amigo', 'assets/amigo/Run (32x32).png', {frameWidth: 32, frameHeight: 30})
+  this.load.spritesheet('amigo-quieto', 'assets/amigo/Idle (32x32).png', {frameWidth: 32, frameHeight: 30})
+
+
+
+  //animales
+  this.load.spritesheet('gallina', 'assets/animales/gallina/Run (32x32).png', { frameWidth: 32, frameHeight: 34 });
 }
 
 // =============================
 //  CREACIÓN DE OBJETOS
 // =============================
 function create() {
+
+
   // Fondo
   this.add.image(config.width / 2, config.height / 2, 'sky');
 
@@ -77,12 +84,7 @@ function create() {
   // =============================
   //  ANIMACIONES DEL JUGADOR
   // =============================
-  this.anims.create({
-    key: 'left',
-    frames: this.anims.generateFrameNumbers('dude-reverse', { start: 0, end: 3 }),
-    frameRate: 10,
-    repeat: -1
-  });
+  
 
   this.anims.create({
     key: 'idle',
@@ -92,15 +94,15 @@ function create() {
   });
 
   this.anims.create({
-    key: 'right',
-    frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
+    key: 'correr',
+    frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 7 }),
     frameRate: 10,
     repeat: -1
   });
 
   this.anims.create({
     key: 'jump',
-    frames: this.anims.generateFrameNumbers('dude-jump', { start: 0, end: 1 }),
+    frames: this.anims.generateFrameNumbers('dude-jump', { start: 0, end: 5 }),
     frameRate: 10,
     repeat: -1
   });
@@ -123,10 +125,22 @@ this.anims.create({
   repeat: -1
 });
 
+
+ 
 this.anims.create({
-  key: 'amigo-idle',
-  frames: this.anims.generateFrameNumbers('amigo', { start: 0, end: 3 }),
-  frameRate: 6,
+  key: 'amigo-quieto',
+  frames: this.anims.generateFrameNumbers('amigo-quieto', { start: 0, end: 0 }),
+  frameRate: 1,
+  repeat: -1
+})
+
+
+
+//Gallina
+this.anims.create({
+  key: 'gallina-correr',
+  frames: this.anims.generateFrameNumbers('gallina', { start: 0, end: 7 }),
+  frameRate: 10,
   repeat: -1
 });
 
@@ -215,6 +229,12 @@ amigoDialogBox.setVisible(false);
 
   showAmigoDialog(this, '¡Han secuestrado a Motocle! Ayúdanos a encontrarlo xdxd', 5000);
 
+
+
+  // Tecla P para voltereta
+  this.keyP = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+
+  
 }
 
 // =============================
@@ -245,13 +265,15 @@ function showAmigoDialog(scene, message, duration = 3000) {
 function update() {
   if (gameOver) return;
 
-  // Movimiento lateral de jugador
+  // Movimiento lateral de jugador 
   if (cursors.left.isDown) {
     player.setVelocityX(-160);
-    player.anims.play('left', true);
+    player.anims.play('correr', true);
+      player.setFlipX(true);  // Voltear sprite a la izquierda
   } else if (cursors.right.isDown) {
     player.setVelocityX(160);
-    player.anims.play('right', true);
+    player.anims.play('correr', true);
+    player.setFlipX(false);  // Voltear sprite a la derecha
   } else {
     player.setVelocityX(0);
     player.anims.play('idle', true);
@@ -296,14 +318,14 @@ const distanciaMinima = 50;
 
 if (Math.abs(diffX) > distanciaMinima) {
   // Mover horizontal
-  if (diffX > 0) {
-    amigo.setVelocityX(velocidad);
+  if (diffX > 0) { //
+    amigo.setVelocityX(velocidad); // mover a la derecha
     amigo.setFlipX(false);
   } else {
-    amigo.setVelocityX(-velocidad);
-    amigo.setFlipX(true);
+    amigo.setVelocityX(-velocidad); // mover a la izquierda
+    amigo.setFlipX(true); 
   }
-  amigo.anims.play('amigo-run', true);
+  amigo.anims.play('amigo-run', true); 
 
   // Saltar solo si es necesario para subir plataformas alcanzables
   if (diffY < -20 && amigo.body.touching.down) {
@@ -318,7 +340,7 @@ if (Math.abs(diffX) > distanciaMinima) {
 
 } else {
   amigo.setVelocityX(0);
-  amigo.anims.play('amigo-idle', true);
+  amigo.anims.play('amigo-quieto', true);
 }
 
 // =============================
@@ -328,6 +350,24 @@ if (amigoDialogBox.visible) {
   amigoDialogBox.setPosition(amigo.x, amigo.y - 60);
 }
 
+
+// 🔹 Voltereta al presionar P
+if (Phaser.Input.Keyboard.JustDown(this.keyP) && player.body.touching.down) {
+  player.setVelocityY(-150); // salto más alto
+  player.anims.play('jump', true);
+
+  // Pequeño giro visual en el aire (rotación completa)
+  this.tweens.add({
+    targets: player,
+    angle: 360,
+    duration: 600,
+    ease: 'Cubic.easeOut',
+    onComplete: () => {
+      player.angle = 0; // restaurar
+      player.anims.play('idle', true);
+    }
+  });
+}
 
 
 
