@@ -63,6 +63,25 @@ function preload() {
 //  CREACIÓN DE OBJETOS
 // =============================
 function create() {
+// Crear un botón de pantalla completa (arriba a la derecha)
+const fullscreenButton = this.add.text(750, 20, '⛶', {
+  fontSize: '32px',
+  color: '#fff',
+  fontStyle: 'bold',
+  backgroundColor: '#00000066',
+  padding: { x: 10, y: 5 }
+})
+.setOrigin(1, 0) // esquina superior derecha
+.setInteractive();
+
+// Al hacer clic, alternar pantalla completa
+fullscreenButton.on('pointerup', () => {
+  if (this.scale.isFullscreen) {
+    this.scale.stopFullscreen();
+  } else {
+    this.scale.startFullscreen();
+  }
+});
 
 
   // Fondo

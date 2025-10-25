@@ -253,6 +253,12 @@ class GameScene extends Phaser.Scene {
             this.load.image('sky', 'assets/fondo.png');
             this.load.image('ground', 'assets/Brown On (32x8).png');
             
+
+              //motocle 
+            this.load.spritesheet('moto-run', 'assets/motocle/Motocle.png', { frameWidth: 290, frameHeight: 287 });
+            this.load.spritesheet('moto-idle', 'assets/motocle/motocle_quieto.png', { frameWidth: 215, frameHeight: 287 });
+
+
             // === JUGADOR ===
             this.load.spritesheet('ninja-idle', 'assets/player/Idle (32x32).png', { frameWidth: 32, frameHeight: 32 });
             this.load.spritesheet('ninja-run', 'assets/player/Run (32x32).png', { frameWidth: 32, frameHeight: 32 });
@@ -319,7 +325,36 @@ class GameScene extends Phaser.Scene {
         this.createMenuButton();
         
         console.log('✅ GameScene creado exitosamente');
-    }
+              // Crear animación de correr
+        // Animación de idle
+// Crear animaciones (una sola vez)
+this.anims.create({
+    key: 'moto-idle',
+    frames: this.anims.generateFrameNumbers('moto-idle', { start: 1, end: 2 }),
+    frameRate: 1,
+    repeat: -1
+});
+
+this.anims.create({
+    key: 'moto-run',
+    frames: this.anims.generateFrameNumbers('moto-run', { start: 0, end: 2 }),
+    frameRate: 6,
+    repeat: -1
+});
+
+// Crear la moto (solo una vez)
+this.moto = this.physics.add.sprite(100, 450, 'moto-idle');
+
+//colisiones
+
+this.physics.add.collider(this.moto, this.platforms);
+
+this.moto.setCollideWorldBounds(true);
+this.moto.setBounce(0.2);
+this.moto.setScale(0.3); // o 0.2 según se vea bien
+
+
+}
 
     createBackground(worldWidth, worldHeight) {
         if (this.textures.exists('sky')) {
@@ -1214,6 +1249,26 @@ class GameScene extends Phaser.Scene {
         this.updateCompanion();
         this.updateEnemies();
         this.checkGameConditions();
+
+
+        
+        // Dentro del update()
+let velocityX = 0;
+
+if (this.keys.A.isDown || this.cursors.left.isDown) {
+    velocityX = -160;
+    this.moto.setFlipX(true);
+    this.moto.play('moto-run', true);
+} else if (this.keys.D.isDown || this.cursors.right.isDown) {
+    velocityX = 160;
+    this.moto.setFlipX(false);
+    this.moto.play('moto-run', true);
+} else {
+    this.moto.play('moto-idle', true); // se queda quieta
+}
+
+this.moto.setVelocityX(velocityX);
+
     }
 
     handlePlayerMovement() {
