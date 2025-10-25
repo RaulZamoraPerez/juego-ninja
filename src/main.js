@@ -1,21 +1,47 @@
+import MenuScene from './scenes/MenuScene.js';
 import IntroScene from './scenes/IntroScene.js';
 import GameScene from './scenes/GameScene.js';
-import UIScene from './scenes/UIScene.js';
-import PauseScene from './scenes/PauseScene.js';
-import GameOverScene from './scenes/GameOverScene.js';
+import GameOverScene from './scenes/GameOverScene.js'; // ✅ IMPORTAR
+
+console.log("🚀 Iniciando Ninja Rescue...");
 
 const config = {
-  type: Phaser.AUTO,
-  width: 800,
-  height: 600,
-  physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { y: 300 },
-      debug: false
-    }
-  },
-  scene: [IntroScene, GameScene, UIScene, PauseScene, GameOverScene]
+    type: Phaser.AUTO,
+    width: 1000,
+    height: 600,
+    parent: 'game-container',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 300 },
+            debug: false
+        }
+    },
+    scene: [MenuScene, IntroScene, GameScene, GameOverScene], // ✅ AGREGAR AL ARRAY
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 1000,
+        height: 600
+    },
+    backgroundColor: '#2c3e50'
 };
 
-const game = new Phaser.Game(config);
+document.addEventListener('DOMContentLoaded', () => {
+    const loading = document.getElementById('loading');
+    if (loading) {
+        loading.style.display = 'none';
+    }
+    
+    const gameContainer = document.createElement('div');
+    gameContainer.id = 'game-container';
+    document.body.appendChild(gameContainer);
+    
+    const game = new Phaser.Game(config);
+    
+    console.log("🎉 Ninja Rescue iniciado correctamente!");
+    console.log("🎮 Versión del código: MODULAR-2024-V1");
+    console.log("💀 GameOverScene registrado"); // ✅ LOG DE CONFIRMACIÓN
+    
+    window.game = game;
+});

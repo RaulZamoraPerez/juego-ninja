@@ -254,6 +254,8 @@ class GameScene extends Phaser.Scene {
             this.load.image('ground', 'assets/Brown On (32x8).png');
             
 
+            
+
               //motocle 
             this.load.spritesheet('moto-run', 'assets/motocle/Motocle.png', { frameWidth: 290, frameHeight: 287 });
             this.load.spritesheet('moto-idle', 'assets/motocle/motocle_quieto.png', { frameWidth: 215, frameHeight: 287 });
@@ -340,7 +342,7 @@ this.anims.create({
     frames: this.anims.generateFrameNumbers('moto-run', { start: 0, end: 2 }),
     frameRate: 6,
     repeat: -1
-});
+});s
 
 // Crear la moto (solo una vez)
 this.moto = this.physics.add.sprite(100, 450, 'moto-idle');
