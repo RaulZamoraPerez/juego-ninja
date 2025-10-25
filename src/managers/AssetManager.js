@@ -12,7 +12,7 @@ export default class AssetManager {
 
     preloadAssets() {
         console.log("📥 Cargando todos los assets...");
-        git
+        
         // === JUGADOR ===
         this.scene.load.spritesheet('ninja-idle', 'assets/player/Idle (32x32).png', { frameWidth: 32, frameHeight: 32 });
         this.scene.load.spritesheet('ninja-run', 'assets/player/Run (32x32).png', { frameWidth: 32, frameHeight: 32 });
