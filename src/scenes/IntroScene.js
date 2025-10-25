@@ -1,3 +1,4 @@
+// La intro de la historia del juego xD, falta pulirla un poco o mucho xD
 export default class IntroScene extends Phaser.Scene {
   constructor() {
     super('IntroScene');

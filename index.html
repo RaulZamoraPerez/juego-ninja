@@ -3,19 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>juego</title>
+    <title>Ninja Rescue - La Aventura de Motocle</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        canvas {
+            border: 3px solid #4a90e2;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(74, 144, 226, 0.3);
+        }
+       
+        #loading {
+            color: #ffffff;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 2px;
+        }
+    </style>
 </head>
-
-<style>
-    body{
-        margin: 0;
-        background: 000000;
-    }
-</style>
 <body>
-
-
-    <script src="//cdn.jsdelivr.net/npm/phaser@3.88.2/dist/phaser.min.js"></script>
-    <script src="src/script.js"></script>
+    <div id="loading">CARGANDO NINJA RESCUE</div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <script type="module" src="src/main.js"></script>
 </body>
 </html>
