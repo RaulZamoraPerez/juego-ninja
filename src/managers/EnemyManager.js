@@ -28,9 +28,9 @@ export default class EnemyManager {
             
             if (pos.type === 'gallina') {
                 enemy = this.scene.enemies.create(pos.x, pos.y, gallinaTexture);
-                enemy.setBounce(1);
+                enemy.setBounce(0.1); // Rebote muy bajo para que no brinque
                 enemy.setCollideWorldBounds(true);
-                enemy.setVelocity(Phaser.Math.Between(-100, 100), 20);
+                enemy.setVelocity(Phaser.Math.Between(-100, 100), 0); // Sin impulso vertical
                 enemy.health = 30;
                 enemy.damage = 10;
                 enemy.enemyType = 'gallina';
@@ -70,74 +70,81 @@ export default class EnemyManager {
             } else if (enemy.enemyType === 'gallina') {
                 if (Math.random() < 0.005) {
                     enemy.setVelocityX(Phaser.Math.Between(-100, 100));
-                    enemy.setFlipX(enemy.body.velocity.x < 0);
-                    
-                    if (this.scene.anims.exists('gallina-run')) {
-                        enemy.anims.play('gallina-run', true);
-                    }
+                    // No modificar velocidad Y para evitar saltos
+                }
+                // flipX = false (derecha), flipX = true (izquierda)
+                enemy.setFlipX(enemy.body.velocity.x > 0);
+                if (this.scene.anims.exists('gallina-run')) {
+                    enemy.anims.play('gallina-run', true);
                 }
             }
         });
     }
 
     updateRino(rino) {
-        if (!rino || !rino.active || !this.scene.player) return;
+        if (!rino || !rino.active) return;
+
+        // Elegir objetivo: jugador si está vivo, si no el compañero
+        let target = null;
+        if (this.scene.player && this.scene.player.active) {
+            target = this.scene.player;
+        } else if (this.scene.companion && this.scene.companion.active) {
+            target = this.scene.companion;
+        } else {
+            // Sin objetivo, patrullaje
+            if (!rino.patrolTimer) {
+                rino.patrolTimer = this.scene.time.now;
+                rino.patrolDirection = Math.random() > 0.5 ? 1 : -1;
+            }
+            if (this.scene.time.now - rino.patrolTimer > 3000) {
+                rino.patrolDirection *= -1;
+                rino.setFlipX(rino.patrolDirection < 0 ? false : true);
+                rino.patrolTimer = this.scene.time.now;
+            }
+            rino.setVelocityX(rino.patrolDirection * 30);
+            rino.turnTimer = null;
+            if (this.scene.anims.exists('rino-idle')) {
+                rino.anims.play('rino-idle', true);
+            }
+            return;
+        }
 
         const distance = Phaser.Math.Distance.Between(
-            rino.x, rino.y, this.scene.player.x, this.scene.player.y
+            rino.x, rino.y, target.x, target.y
         );
 
         if (distance < 200) {
-            const playerIsToTheLeft = this.scene.player.x < rino.x;
-            
-            // Corregir la lógica: flipX = true significa mirando a la IZQUIERDA
-            // flipX = false significa mirando a la DERECHA
-            const rinoFacingLeft = rino.flipX === true;
-            const rinoFacingRight = rino.flipX === false;
-            
-            // Solo perseguir si está mirando hacia el jugador
-            const canAttack = (playerIsToTheLeft && rinoFacingLeft) || (!playerIsToTheLeft && rinoFacingRight);
-            
-            if (canAttack) {
-                // Perseguir al jugador
-                const speed = 80;
-                if (playerIsToTheLeft) {
-                    rino.setVelocityX(-speed);
-                    rino.setFlipX(true);  // Mirar izquierda
-                } else {
-                    rino.setVelocityX(speed);
-                    rino.setFlipX(false); // Mirar derecha
-                }
-
-                // Salto si el jugador está arriba
-                if (rino.body.touching.down && this.scene.player.y < rino.y - 50) {
-                    rino.setVelocityY(-250);
-                }
-
-                if (this.scene.anims.exists('rino-run')) {
-                    rino.anims.play('rino-run', true);
-                }
+            const targetIsToTheLeft = target.x < rino.x;
+            // El rino siempre debe mirar hacia donde camina
+            const speed = 80;
+            if (targetIsToTheLeft) {
+                rino.setVelocityX(-speed);
+                rino.setFlipX(false);  // Mirar izquierda (flipX=false)
             } else {
-                // El jugador está detrás - detener y girar después de un tiempo
+                rino.setVelocityX(speed);
+                rino.setFlipX(true); // Mirar derecha (flipX=true)
+            }
+            // Salto si el objetivo está arriba
+            if (rino.body.touching.down && target.y < rino.y - 50) {
+                rino.setVelocityY(-250);
+            }
+            // Animación de correr
+            if (this.scene.anims.exists('rino-run')) {
+                rino.anims.play('rino-run', true);
+            }
+            // Si el objetivo está detrás, detener y girar después de un tiempo
+            const rinoMiraObjetivo = (targetIsToTheLeft && !rino.flipX) || (!targetIsToTheLeft && rino.flipX);
+            if (!rinoMiraObjetivo) {
                 rino.setVelocityX(0);
-                
-                // Inicializar timer si no existe
                 if (!rino.turnTimer) {
                     rino.turnTimer = this.scene.time.now;
-                    console.log("🦏 Rino detectó jugador por detrás - iniciando giro");
                 }
-                
-                // Girar después de 1.5 segundos
                 if (this.scene.time.now - rino.turnTimer > 1500) {
-                    console.log("🔄 Rino girando hacia el jugador");
-                    rino.setFlipX(playerIsToTheLeft);
+                    rino.setFlipX(!targetIsToTheLeft);
                     rino.turnTimer = null;
-                    
-                    // Reproducir animación hit-wall al girar
+                    // Animación de topar (hit wall)
                     if (this.scene.anims.exists('rino-hit-wall')) {
                         rino.anims.play('rino-hit-wall');
-                        
-                        // Volver a idle después de la animación
                         this.scene.time.delayedCall(600, () => {
                             if (rino && rino.active && this.scene.anims.exists('rino-idle')) {
                                 rino.anims.play('rino-idle', true);
@@ -145,29 +152,26 @@ export default class EnemyManager {
                         });
                     }
                 } else {
-                    // Mientras decide girar, mostrar idle
                     if (this.scene.anims.exists('rino-idle')) {
                         rino.anims.play('rino-idle', true);
                     }
                 }
+            } else {
+                rino.turnTimer = null;
             }
         } else {
-            // Fuera del rango de detección - patrullaje lento
+            // Patrullaje lento fuera de rango
             if (!rino.patrolTimer) {
                 rino.patrolTimer = this.scene.time.now;
                 rino.patrolDirection = Math.random() > 0.5 ? 1 : -1;
             }
-            
-            // Cambiar dirección de patrullaje cada 3 segundos
             if (this.scene.time.now - rino.patrolTimer > 3000) {
                 rino.patrolDirection *= -1;
-                rino.setFlipX(rino.patrolDirection < 0);
+                rino.setFlipX(rino.patrolDirection < 0 ? false : true);
                 rino.patrolTimer = this.scene.time.now;
             }
-            
-            rino.setVelocityX(rino.patrolDirection * 30); // Patrullaje lento
-            rino.turnTimer = null; // Reset timer de giro
-            
+            rino.setVelocityX(rino.patrolDirection * 30);
+            rino.turnTimer = null;
             if (this.scene.anims.exists('rino-idle')) {
                 rino.anims.play('rino-idle', true);
             }
@@ -200,20 +204,27 @@ export default class EnemyManager {
 
         if (enemy.health <= 0) {
             const points = enemy.enemyType === 'rino' ? 100 : 50;
-            
-            if (enemy && enemy.destroy) {
-                enemy.destroy();
-            }
-            
-            this.scene.gameState.score += points;
-            this.scene.gameState.enemiesKilled++;
-            this.scene.uiManager.updateScore();
-            
-            console.log(`💀 ${enemy.enemyType} eliminado (+${points} puntos)`);
-            
-            if (this.scene.enemies && this.scene.enemies.children && this.scene.enemies.children.size === 0) {
-                this.spawnMoreEnemies();
-            }
+            // Animación de muerte suave
+            enemy.setTint(0xff0000);
+            this.scene.tweens.add({
+                targets: enemy,
+                scale: 1.5,
+                alpha: 0,
+                duration: 500,
+                ease: 'Cubic.easeIn',
+                onComplete: () => {
+                    if (enemy && enemy.destroy) {
+                        enemy.destroy();
+                    }
+                    this.scene.gameState.score += points;
+                    this.scene.gameState.enemiesKilled++;
+                    this.scene.uiManager.updateScore();
+                    console.log(`💀 ${enemy.enemyType} eliminado (+${points} puntos)`);
+                    if (this.scene.enemies && this.scene.enemies.children && this.scene.enemies.children.size === 0) {
+                        this.spawnMoreEnemies();
+                    }
+                }
+            });
         }
     }
 
@@ -230,9 +241,9 @@ export default class EnemyManager {
         
         spawnPoints.forEach(pos => {
             const enemy = this.scene.enemies.create(pos.x, pos.y, gallinaTexture);
-            enemy.setBounce(1);
+            enemy.setBounce(0.1);
             enemy.setCollideWorldBounds(true);
-            enemy.setVelocity(Phaser.Math.Between(-120, 120), 20);
+            enemy.setVelocity(Phaser.Math.Between(-120, 120), 0);
             enemy.health = 35;
             enemy.damage = 18;
             enemy.enemyType = 'gallina';
@@ -246,36 +257,18 @@ export default class EnemyManager {
     }
 
     hitEnemy(player, enemy) {
-        if (!player.isInvulnerable) {
-            console.log(`💔 NINJA HERIDO por ${enemy.enemyType}! Vida: ${player.health} → ${player.health - enemy.damage}`);
-            
-            player.health -= enemy.damage;
-            this.scene.gameState.health = player.health;
-            this.scene.uiManager.updateHealth();
-            
-            player.isInvulnerable = true;
-            player.setTint(0xff0000);
-            
-            const pushForce = player.x < enemy.x ? -300 : 300;
-            player.setVelocityX(pushForce);
-            player.setVelocityY(-200);
-            
-            this.scene.cameras.main.shake(300, 0.02);
-            
-            this.scene.time.delayedCall(3000, () => {
-                if (player && player.active) {
-                    player.clearTint();
-                    player.isInvulnerable = false;
-                    console.log("✅ Ninja ya no es invulnerable");
-                }
-            });
-
-            if (player.health <= 0) {
-                console.log("💀 GAME OVER - Vida agotada!");
+        // Sin animación de golpe, solo resta vida y actualiza UI
+        console.log(`💔 NINJA HERIDO por ${enemy.enemyType}! Vida: ${player.health} → ${player.health - enemy.damage}`);
+        player.health -= enemy.damage;
+        this.scene.gameState.health = player.health;
+        this.scene.uiManager.updateHealth();
+        if (player.health <= 0) {
+            console.log("💀 NINJA MUERTO!");
+            player.setActive(false).setVisible(false);
+            // Solo terminar el juego si el compañero también está muerto o inactivo
+            if (!this.scene.companion || !this.scene.companion.active) {
                 this.scene.gameOver();
             }
-        } else {
-            console.log("🛡️ Ninja invulnerable - sin daño");
         }
     }
 }

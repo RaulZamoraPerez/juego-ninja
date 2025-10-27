@@ -1,0 +1,4 @@
+// Archivo original script.txt movido como respaldo para evitar doble instancia de Phaser.
+// Si necesitas restaurarlo, vuelve a copiarlo a src/.
+
+// ...contenido original eliminado para evitar conflictos...

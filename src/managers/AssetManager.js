@@ -26,12 +26,15 @@ export default class AssetManager {
         this.scene.load.spritesheet('amigo-run', 'assets/amigo/Run (32x32).png', { frameWidth: 32, frameHeight: 32 });
         this.scene.load.spritesheet('amigo-attack', 'assets/amigo/Double Jump (32x32).png', { frameWidth: 32, frameHeight: 32 });
         
-        // === ENEMIGOS ===
+    // === ENEMIGOS ===
         this.scene.load.spritesheet('gallina-run', 'assets/animales/gallina/Run (32x34).png', { frameWidth: 32, frameHeight: 34 });
         this.scene.load.spritesheet('rino-idle', 'assets/animales/Rino/Idle (52x34).png', { frameWidth: 52, frameHeight: 34 });
         this.scene.load.spritesheet('rino-run', 'assets/animales/Rino/Run (52x34).png', { frameWidth: 52, frameHeight: 34 });
         this.scene.load.spritesheet('rino-hit', 'assets/animales/Rino/Hit (52x34).png', { frameWidth: 52, frameHeight: 34 });
         this.scene.load.spritesheet('rino-hit-wall', 'assets/animales/Rino/Hit Wall (52x34).png', { frameWidth: 52, frameHeight: 34 });
+
+    // === MOTOCLE ===
+    // La carga de Motocle se realiza en GameScene.js para evitar duplicados
         
         // === ITEMS Y MUNDO ===
         this.scene.load.spritesheet('coin', 'assets/dinero/coin.png', { frameWidth: 16, frameHeight: 16 });
@@ -66,6 +69,8 @@ export default class AssetManager {
         try {
             // === NINJA ANIMATIONS ===
             if (this.scene.textures.exists('ninja-idle')) {
+            // === MOTOCLE ANIMATIONS ===
+            // Animaciones de Motocle se crean en GameScene.js
                 anims.create({
                     key: 'ninja-idle',
                     frames: anims.generateFrameNumbers('ninja-idle', { start: 0, end: 3 }),

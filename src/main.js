@@ -32,16 +32,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loading) {
         loading.style.display = 'none';
     }
-    
+
+    // Eliminar cualquier game-container y canvas previos
+    const oldContainers = document.querySelectorAll('#game-container');
+    oldContainers.forEach(el => el.remove());
+    const oldCanvas = document.querySelectorAll('canvas');
+    oldCanvas.forEach(el => el.remove());
+
     const gameContainer = document.createElement('div');
     gameContainer.id = 'game-container';
     document.body.appendChild(gameContainer);
-    
+
     const game = new Phaser.Game(config);
-    
+
     console.log("🎉 Ninja Rescue iniciado correctamente!");
     console.log("🎮 Versión del código: MODULAR-2024-V1");
     console.log("💀 GameOverScene registrado"); // ✅ LOG DE CONFIRMACIÓN
-    
+
     window.game = game;
 });

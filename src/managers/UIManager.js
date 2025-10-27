@@ -20,29 +20,99 @@ export default class UIManager {
     createUI() {
         // Contenedor principal del UI
         this.uiContainer = this.scene.add.container(0, 0).setScrollFactor(0).setDepth(1000);
+        // Forzar posición Y a 0 en cada frame para que nunca se mueva con el zoom/cámara
+        this.scene.events.on('postupdate', () => {
+            if (this.uiContainer) {
+                this.uiContainer.y = 0;
+            }
+        });
 
         // Panel superior elegante
         this.createTopPanel();
 
-        // Barra de vida moderna
+        // Barra de vida moderna del jugador principal
         this.createModernHealthBar();
+        // Barra de vida del compañero
+        this.createCompanionHealthBar();
+    }
 
-        // Panel de monedas
-        this.createCoinsPanel();
+    // --- NUEVO: Barra de vida del compañero ---
+    createCompanionHealthBar() {
+        const x = 25;
+        const y = 55;
+        const barWidth = 200;
+        const barHeight = 18;
 
-        // Panel de puntuación
-        this.createScorePanel();
+        // Etiqueta
+        const label = this.scene.add.text(x, y, 'COMPAÑERO', {
+            fontSize: '12px',
+            color: '#a7f3d0',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            letterSpacing: '1px'
+        }).setOrigin(0, 0).setScrollFactor(0).setDepth(1001);
 
-        // Indicador de invulnerabilidad
-        this.createInvulnerableIndicator();
+        // Fondo de la barra
+        const barBg = this.scene.add.graphics();
+        barBg.fillStyle(0x1e293b, 0.8);
+        barBg.fillRoundedRect(x, y + 16, barWidth, barHeight, 8);
+        barBg.lineStyle(2, 0x059669, 0.5);
+        barBg.strokeRoundedRect(x, y + 16, barWidth, barHeight, 8);
 
-        // Controles minimalistas
-        this.createControlsHint();
+        // Barra de vida
+        this.companionHealthBar = this.scene.add.graphics();
+        this.updateCompanionHealthBarGraphics(barWidth - 4, barHeight - 4, 1);
 
-        // Botón de menú moderno
-        this.createMenuButton();
+        // Texto de vida
+        this.companionHealthText = this.scene.add.text(x + barWidth/2, y + 16 + barHeight/2,
+            `${this.scene.companionHealth}/${this.scene.companionMaxHealth}`, {
+            fontSize: '13px',
+            color: '#a7f3d0',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
 
-        console.log("✅ UI moderna creada exitosamente");
+        this.uiContainer.add([label, barBg, this.companionHealthBar, this.companionHealthText]);
+    }
+
+    updateCompanionHealthBarGraphics(maxWidth, height, healthPercent) {
+        this.companionHealthBar.clear();
+        const currentWidth = maxWidth * healthPercent;
+        // Color según la vida
+        let color1, color2;
+        if (healthPercent < 0.3) {
+            color1 = 0x22d3ee; // Azul claro
+            color2 = 0x06b6d4;
+        } else if (healthPercent < 0.6) {
+            color1 = 0xfbbf24; // Amarillo
+            color2 = 0xf59e0b;
+        } else {
+            color1 = 0x10b981; // Verde
+            color2 = 0x059669;
+        }
+        this.companionHealthBar.fillGradientStyle(color1, color1, color2, color2, 1);
+        this.companionHealthBar.fillRoundedRect(27, 71, currentWidth, height, 6);
+        // Brillo superior
+        this.companionHealthBar.fillStyle(0xffffff, 0.18);
+        this.companionHealthBar.fillRoundedRect(27, 71, currentWidth, height/3, 6);
+    }
+
+    updateCompanionHealth() {
+        if (this.companionHealthBar && this.companionHealthText) {
+            const health = this.scene.companionHealth !== undefined ? this.scene.companionHealth : 0;
+            const maxHealth = this.scene.companionMaxHealth || 200;
+            const healthPercent = Math.max(0, health / maxHealth);
+            this.updateCompanionHealthBarGraphics(196, 14, healthPercent);
+            this.companionHealthText.setText(`${health}/${maxHealth}`);
+            // Efecto de shake al recibir daño
+            this.scene.tweens.add({
+                targets: this.companionHealthText,
+                x: this.companionHealthText.x + 4,
+                duration: 50,
+                yoyo: true,
+                repeat: 2
+            });
+        }
     }
 
     createTopPanel() {
