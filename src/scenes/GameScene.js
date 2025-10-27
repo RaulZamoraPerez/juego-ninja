@@ -26,6 +26,73 @@ class GameScene extends Phaser.Scene {
             this.motocleDialogBubble = null;
         }
     }
+
+    cancelMotocleTimers() {
+        if (this.motocleEntryTimer) {
+            this.motocleEntryTimer.remove();
+            this.motocleEntryTimer = null;
+        }
+        if (this.motocleEntryTween) {
+            this.tweens.remove(this.motocleEntryTween);
+            this.motocleEntryTween = null;
+        }
+    }
+
+    // Inicializar mensajes de Motocle (historia + peticiones)
+    initMotocleMessages() {
+        // Mensajes por defecto: puedes editarlos aquí
+        this.motocleMessages = [
+            { text: '¡Hola chavos! Me secuestraron los Bandidos Sombríos. ¡Por favor, ayúdenme!', duration: 3500 },
+            { text: 'Mi familia está en la colina del faro. Recolecten monedas para abrir el portal.', duration: 4200 },
+            { text: 'Cuidado con los lobos: ataca cuando brillen en rojo. ¡Buena suerte!', duration: 3500 }
+        ];
+    }
+
+    // Muestra la secuencia de mensajes de Motocle uno tras otro
+    showMotocleSequence() {
+        if (!this.motocle || !this.motocle.active) return;
+        if (!this.motocleMessages || !this.motocleMessages.length) this.initMotocleMessages();
+        let idx = 0;
+        const showNext = () => {
+            if (!this.scene.isActive()) return;
+            if (idx >= this.motocleMessages.length) return;
+            const msg = this.motocleMessages[idx];
+            // destruir texto anterior
+            if (this.motocleDialogBubble && this.motocleDialogBubble.text && this.motocleDialogBubble.text.destroy) {
+                this.motocleDialogBubble.text.destroy();
+            }
+            const mx = this.motocle.x;
+            const my = this.motocle.y - this.motocle.displayHeight;
+            const text = this.add.text(mx, my - 30, msg.text, {
+                font: '20px Arial',
+                color: '#222',
+                fontStyle: 'bold',
+                backgroundColor: '#fff',
+                padding: { x: 12, y: 6 },
+                align: 'center',
+                wordWrap: { width: 420 }
+            }).setOrigin(0.5, 1).setDepth(2000);
+            this.motocleDialogBubble = { text };
+            try {
+                text.setScrollFactor(1);
+                if (this.uiCamera && this.uiCamera.ignore) this.uiCamera.ignore(text);
+            } catch (e) {}
+
+            idx++;
+            this.time.delayedCall(msg.duration, () => {
+                if (!this.scene.isActive()) return;
+                if (idx < this.motocleMessages.length) {
+                    showNext();
+                } else {
+                    if (this.motocleDialogBubble && this.motocleDialogBubble.text && this.motocleDialogBubble.text.destroy) {
+                        this.motocleDialogBubble.text.destroy();
+                        this.motocleDialogBubble = null;
+                    }
+                }
+            });
+        };
+        showNext();
+    }
     constructor() {
         super('GameScene');
         this.gameState = {
@@ -49,8 +116,22 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+    console.log('GameScene create called');
+    // Limpiar cualquier residuo de Motocle anterior
+    this.destroyMotocleDialog();
+    if (this.motocle && this.motocle.destroy) {
+        this.motocle.destroy();
+        this.motocle = null;
+    }
     // Bandera para evitar múltiples entradas de Motocle
     this.motocleHasEntered = false;
+    // Bandera para evitar múltiples saludos de Motocle
+    this.motocleGreetingShown = false;
+    // Bandera para evitar múltiples completaciones de tween
+    this.motocleTweenCompleted = false;
+    // Referencias para cancelar timers y tweens
+    this.motocleEntryTimer = null;
+    this.motocleEntryTween = null;
         // Animación de entrada de Motocle
         // Ajustar escala y posición para que Motocle sea del tamaño de los demás y pise el suelo
     const MOTOCLE_SCALE = 0.16;
@@ -58,24 +139,39 @@ class GameScene extends Phaser.Scene {
     // Usar físicas igual que el jugador y compañero
     // Usar la misma Y que el jugador y compañero
     const PLAYER_BASE_Y = 450;
-    // Motocle se crea invisible y fuera de pantalla, luego entra corriendo tras 5s
-    if (!this.motocle) {
-        this.motocle = this.physics.add.sprite(-200, PLAYER_BASE_Y, 'motocle_run', 0).setDepth(100);
-        this.motocle.setScale(MOTOCLE_SCALE);
-        this.motocle.setBounce(0.2);
-        this.motocle.setCollideWorldBounds(true);
-        this.motocle.setOrigin(0.5, 1);
-        this.motocle.body.setOffset(0, this.motocle.height * (1 - this.motocle.originY));
-        this.motocle.setVisible(false);
-        this.motocle.setActive(false);
-    }
+    // Eliminar cualquier Motocle existente (de escenas anteriores)
+    this.children.list.filter(child => child.texture && (child.texture.key === 'motocle_run' || child.texture.key === 'motocle_quieto2')).forEach(motocle => {
+        console.log('Destruyendo Motocle existente:', motocle);
+        motocle.destroy();
+    });
+    // Crear Motocle
+    this.motocle = this.physics.add.sprite(-200, PLAYER_BASE_Y, 'motocle_run', 0).setDepth(100);
+    this.motocle.setScale(MOTOCLE_SCALE);
+    this.motocle.setBounce(0.2);
+    this.motocle.setCollideWorldBounds(true);
+    this.motocle.setOrigin(0.5, 1);
+    this.motocle.body.setOffset(0, this.motocle.height * (1 - this.motocle.originY));
+    this.motocle.setVisible(false);
+    this.motocle.setActive(false);
+    console.log('Motocle texture exists:', this.textures.exists('motocle_run'));
+    console.log('Motocle created at:', this.motocle.x, this.motocle.y, 'visible:', this.motocle.visible, 'active:', this.motocle.active);
+    // Eliminar cualquier Motocle extra (personajes bugueados)
+    this.children.list.filter(child => child !== this.motocle && child.texture && (child.texture.key === 'motocle_run' || child.texture.key === 'motocle_quieto2')).forEach(extra => {
+        console.log('Destruyendo Motocle extra:', extra);
+        extra.destroy();
+    });
+    // Eliminar cualquier texto extra con '¡Hola chavos!'
+    this.children.list.filter(child => child.type === 'Text' && child.text === '¡Hola chavos!').forEach(text => {
+        console.log('Destruyendo texto existente:', text);
+        text.destroy();
+    });
     this.motocleDialogBubble = null;
 
     // Animaciones Motocle
     this.anims.create({
         key: 'motocle_run_anim',
         frames: this.anims.generateFrameNumbers('motocle_run', { start: 0, end: 2 }),
-        frameRate: 8,
+        frameRate: 6,
         repeat: -1
     });
     this.anims.create({
@@ -85,51 +181,50 @@ class GameScene extends Phaser.Scene {
         repeat: -1
     });
 
-    this.time.delayedCall(5000, () => {
-        if (!this.motocleHasEntered) {
-            this.motocleHasEntered = true;
-            this.motocle.setVisible(true);
-            this.motocle.setActive(true);
-            this.motocle.x = -200;
-            this.motocle.play('motocle_run_anim');
-            this.tweens.add({
-                targets: this.motocle,
-                x: 320,
-                duration: 1800,
-                ease: 'Power1',
-                onComplete: () => {
-                    this.motocle.play('motocle_quieto2_anim');
-                    this.motocle.setScale(MOTOCLE_QUIETO2_SCALE);
-                    // Destruir texto anterior si existe
-                    if (this.motocleDialogBubble && this.motocleDialogBubble.text && this.motocleDialogBubble.text.destroy) {
-                        this.motocleDialogBubble.text.destroy();
-                    }
-                    // Mostrar texto sobre Motocle
-                    const mx = this.motocle.x;
-                    const my = this.motocle.y - this.motocle.displayHeight;
-                    const text = this.add.text(mx, my - 30, '¡Hola chavos!', {
-                        font: '24px Arial',
-                        color: '#222',
-                        fontStyle: 'bold',
-                        backgroundColor: '#fff',
-                        padding: { x: 12, y: 6 },
-                        align: 'center'
-                    }).setOrigin(0.5, 1).setDepth(2000);
-                    this.motocleDialogBubble = { text };
-                    // Quitar el texto después de 2 segundos
-                    this.time.delayedCall(2000, () => {
-                        if (this.motocleDialogBubble && this.motocleDialogBubble.text && this.motocleDialogBubble.text.destroy) {
-                            this.motocleDialogBubble.text.destroy();
-                            this.motocleDialogBubble = null;
+    // Evitar ejecutar la entrada de Motocle más de una vez (guard global)
+    if (!window.motocleEntryExecuted) {
+        // Esperar unos segundos antes de que Motocle entre corriendo
+        this.motocleEntryTimer = this.time.delayedCall(3000, () => {
+            if (!this.scene.isActive()) return; // No ejecutar si la escena no está activa
+            console.log('DelayedCall ejecutado, motocleHasEntered:', this.motocleHasEntered);
+            if (!this.motocleHasEntered) {
+                console.log('Entrando Motocle');
+                this.motocleHasEntered = true;
+                this.motocle.setVisible(true);
+                this.motocle.setActive(true);
+                this.motocle.x = -200;
+                this.motocle.play('motocle_run_anim');
+                console.log('Motocle activated at:', this.motocle.x, this.motocle.y);
+                // Asegurar que sólo haya un tween activo para Motocle
+                    if (!this.motocleEntryTween) {
+                    // Tween más lento para que la entrada no sea tan rápida
+                    this.motocleEntryTween = this.tweens.add({
+                        targets: this.motocle,
+                        x: 320,
+                        duration: 4200,
+                        ease: 'Power1',
+                        onComplete: () => {
+                            if (!this.scene.isActive()) return; // No ejecutar si la escena no está activa
+                            if (!this.motocleTweenCompleted) {
+                                this.motocleTweenCompleted = true;
+                                console.log('Tween completado, motocleGreetingShown:', this.motocleGreetingShown);
+                                this.motocle.play('motocle_quieto2_anim');
+                                this.motocle.setScale(MOTOCLE_QUIETO2_SCALE);
+                                // Mostrar la secuencia de mensajes de Motocle (historia + petición de ayuda)
+                                if (!this.motocleGreetingShown) {
+                                    this.motocleGreetingShown = true;
+                                    try { this.showMotocleSequence(); } catch (e) { console.log('Error mostrando secuencia de Motocle:', e); }
+                                }
+                            }
                         }
                     });
                 }
-            });
-        }
-    });
-        // Destruir el globo de Motocle al salir de la escena
-        this.events.on('shutdown', this.destroyMotocleDialog, this);
-        this.events.on('destroy', this.destroyMotocleDialog, this);
+            }
+        });
+        window.motocleEntryExecuted = true;
+    } else {
+        console.log('Saltando entrada de Motocle porque window.motocleEntryExecuted ya está en true');
+    }
         // Asegurar colisión de Motocle con plataformas después de crear plataformas
         if (this.platforms) {
             this.physics.add.collider(this.motocle, this.platforms);
@@ -203,7 +298,42 @@ class GameScene extends Phaser.Scene {
     createFireEffect(this, 1200, 520, { color: 0xff6600, numParticles: 20, radius: 13 });
     createFireEffect(this, 1800, 530, { color: 0xffcc00, numParticles: 15, radius: 11 });
 
-        console.log("✅ GameScene creado exitosamente");
+        // Destruir el globo de Motocle al salir de la escena
+        this.events.on('shutdown', () => {
+            this.destroyMotocleDialog();
+            this.cancelMotocleTimers();
+            if (this.motocle) {
+                this.motocle.destroy();
+                this.motocle = null;
+            }
+            // Reset guard global para permitir re-entrada en futuras escenas
+            try { window.motocleEntryExecuted = false; } catch(e) {}
+        }, this);
+        this.events.on('destroy', () => {
+            this.destroyMotocleDialog();
+            this.cancelMotocleTimers();
+            if (this.motocle) {
+                this.motocle.destroy();
+                this.motocle = null;
+            }
+            // Reset guard global para permitir re-entrada en futuras escenas
+            try { window.motocleEntryExecuted = false; } catch(e) {}
+        }, this);
+        // Limpiar si se reanuda la escena (por si acaso)
+        this.events.on('resume', () => {
+            this.destroyMotocleDialog();
+            this.cancelMotocleTimers();
+            if (this.motocle) {
+                this.motocle.destroy();
+                this.motocle = null;
+            }
+            this.motocleHasEntered = false;
+            this.motocleGreetingShown = false;
+            this.motocleTweenCompleted = false;
+            try { window.motocleEntryExecuted = false; } catch(e) {}
+        }, this);
+
+        console.log("✅ GameScene creado exitosamente");;
     }
 
     setupControls() {

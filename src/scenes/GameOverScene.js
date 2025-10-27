@@ -63,6 +63,10 @@ class GameOverScene extends Phaser.Scene {
 
         retryButton.on('pointerdown', () => {
             console.log("🔄 Reiniciando juego...");
+            const gameScene = this.scene.manager.getScene('GameScene');
+            if (gameScene) {
+                this.scene.manager.remove('GameScene');
+            }
             this.scene.start('GameScene');
         });
 
@@ -90,6 +94,10 @@ class GameOverScene extends Phaser.Scene {
             if (this.scene.manager.scenes.find(scene => scene.scene.key === 'MenuScene')) {
                 this.scene.start('MenuScene');
             } else {
+                const gameScene = this.scene.manager.getScene('GameScene');
+                if (gameScene) {
+                    this.scene.manager.remove('GameScene');
+                }
                 this.scene.start('GameScene');
             }
         });
@@ -104,10 +112,18 @@ class GameOverScene extends Phaser.Scene {
 
         // ✅ CONTROLES DE TECLADO
         this.input.keyboard.on('keydown-SPACE', () => {
+            const gameScene = this.scene.manager.getScene('GameScene');
+            if (gameScene) {
+                this.scene.manager.remove('GameScene');
+            }
             this.scene.start('GameScene');
         });
 
         this.input.keyboard.on('keydown-ESC', () => {
+            const gameScene = this.scene.manager.getScene('GameScene');
+            if (gameScene) {
+                this.scene.manager.remove('GameScene');
+            }
             this.scene.start('GameScene');
         });
 
