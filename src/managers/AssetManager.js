@@ -32,8 +32,28 @@ export default class AssetManager {
         this.scene.load.spritesheet('rino-run', 'assets/animales/Rino/Run (52x34).png', { frameWidth: 52, frameHeight: 34 });
         this.scene.load.spritesheet('rino-hit', 'assets/animales/Rino/Hit (52x34).png', { frameWidth: 52, frameHeight: 34 });
         this.scene.load.spritesheet('rino-hit-wall', 'assets/animales/Rino/Hit Wall (52x34).png', { frameWidth: 52, frameHeight: 34 });
-
-    // === MOTOCLE ===
+        
+        // === BLUEBIRD (NUEVO ENEMIGO DIFÍCIL) ===
+        this.scene.load.spritesheet('bluebird-flying', 'assets/animales/BlueBird/Flying (32x32).png', { frameWidth: 32, frameHeight: 32 });
+        this.scene.load.spritesheet('bluebird-hit', 'assets/animales/BlueBird/Hit (32x32).png', { frameWidth: 32, frameHeight: 32 });
+        
+        // === SKULL (ENEMIGO NIVEL 2) ===
+        this.scene.load.spritesheet('skull-idle1', 'assets/animales/Skull/Idle 1 (52x54).png', { frameWidth: 52, frameHeight: 54 });
+        this.scene.load.spritesheet('skull-idle2', 'assets/animales/Skull/Idle 2 (52x54).png', { frameWidth: 52, frameHeight: 54 });
+        this.scene.load.spritesheet('skull-hit', 'assets/animales/Skull/Hit (52x54).png', { frameWidth: 52, frameHeight: 54 });
+        this.scene.load.spritesheet('skull-hit-wall1', 'assets/animales/Skull/Hit Wall 1 (52x54).png', { frameWidth: 52, frameHeight: 54 });
+        this.scene.load.spritesheet('skull-hit-wall2', 'assets/animales/Skull/Hit Wall 2 (52x54).png', { frameWidth: 52, frameHeight: 54 });
+        this.scene.load.image('skull-orange-particle', 'assets/animales/Skull/Orange Particle.png');
+        this.scene.load.image('skull-red-particle', 'assets/animales/Skull/Red Particle.png');
+        
+        // === ANGRY PIG (ENEMIGO AMBOS NIVELES) ===
+        this.scene.load.spritesheet('angrypig-idle', 'assets/animales/AngryPig/Idle (36x30).png', { frameWidth: 36, frameHeight: 30 });
+        this.scene.load.spritesheet('angrypig-walk', 'assets/animales/AngryPig/Walk (36x30).png', { frameWidth: 36, frameHeight: 30 });
+        this.scene.load.spritesheet('angrypig-run', 'assets/animales/AngryPig/Run (36x30).png', { frameWidth: 36, frameHeight: 30 });
+        this.scene.load.spritesheet('angrypig-hit1', 'assets/animales/AngryPig/Hit 1 (36x30).png', { frameWidth: 36, frameHeight: 30 });
+        this.scene.load.spritesheet('angrypig-hit2', 'assets/animales/AngryPig/Hit 2 (36x30).png', { frameWidth: 36, frameHeight: 30 });
+        
+        // === MOTOCLE ===
     // La carga de Motocle se realiza en GameScene.js para evitar duplicados
         
         // === ITEMS Y MUNDO ===
@@ -41,6 +61,9 @@ export default class AssetManager {
         this.scene.load.image('sky', 'assets/fondo.png');
         this.scene.load.image('ground', 'assets/Brown On (32x8).png');
         this.scene.load.image('health-potion', 'assets/dinero/coin.png'); // Temporal
+
+        // === FONDO NIVEL 2 ===
+        this.scene.load.image('level2-bg', 'assets/image.png');
     }
 
     createFallbackTextures() {
@@ -195,6 +218,117 @@ export default class AssetManager {
                     key: 'rino-hit-wall',
                     frames: anims.generateFrameNumbers('rino-hit-wall', { start: 0, end: 3 }),
                     frameRate: 8,
+                    repeat: 0
+                });
+            }
+            
+            // === BLUEBIRD ANIMATIONS ===
+            if (this.scene.textures.exists('bluebird-flying')) {
+                anims.create({
+                    key: 'bluebird-flying',
+                    frames: anims.generateFrameNumbers('bluebird-flying', { start: 0, end: 8 }),
+                    frameRate: 12,
+                    repeat: -1
+                });
+            }
+
+            if (this.scene.textures.exists('bluebird-hit')) {
+                anims.create({
+                    key: 'bluebird-hit',
+                    frames: anims.generateFrameNumbers('bluebird-hit', { start: 0, end: 4 }),
+                    frameRate: 10,
+                    repeat: 0
+                });
+            }
+            
+            // === SKULL ANIMATIONS ===
+            if (this.scene.textures.exists('skull-idle1')) {
+                anims.create({
+                    key: 'skull-idle1',
+                    frames: anims.generateFrameNumbers('skull-idle1', { start: 0, end: 7 }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            }
+
+            if (this.scene.textures.exists('skull-idle2')) {
+                anims.create({
+                    key: 'skull-idle2',
+                    frames: anims.generateFrameNumbers('skull-idle2', { start: 0, end: 7 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+            }
+
+            if (this.scene.textures.exists('skull-hit')) {
+                anims.create({
+                    key: 'skull-hit',
+                    frames: anims.generateFrameNumbers('skull-hit', { start: 0, end: 4 }),
+                    frameRate: 12,
+                    repeat: 0
+                });
+            }
+
+            if (this.scene.textures.exists('skull-hit-wall1')) {
+                anims.create({
+                    key: 'skull-hit-wall1',
+                    frames: anims.generateFrameNumbers('skull-hit-wall1', { start: 0, end: 3 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+
+            if (this.scene.textures.exists('skull-hit-wall2')) {
+                anims.create({
+                    key: 'skull-hit-wall2',
+                    frames: anims.generateFrameNumbers('skull-hit-wall2', { start: 0, end: 3 }),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            }
+            
+            // === ANGRY PIG ANIMATIONS ===
+            if (this.scene.textures.exists('angrypig-idle')) {
+                anims.create({
+                    key: 'angrypig-idle',
+                    frames: anims.generateFrameNumbers('angrypig-idle', { start: 0, end: 10 }),
+                    frameRate: 8,
+                    repeat: -1
+                });
+            }
+
+            if (this.scene.textures.exists('angrypig-walk')) {
+                anims.create({
+                    key: 'angrypig-walk',
+                    frames: anims.generateFrameNumbers('angrypig-walk', { start: 0, end: 15 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+            }
+
+            if (this.scene.textures.exists('angrypig-run')) {
+                anims.create({
+                    key: 'angrypig-run',
+                    frames: anims.generateFrameNumbers('angrypig-run', { start: 0, end: 11 }),
+                    frameRate: 14,
+                    repeat: -1
+                });
+            }
+
+            if (this.scene.textures.exists('angrypig-hit1')) {
+                anims.create({
+                    key: 'angrypig-hit1',
+                    frames: anims.generateFrameNumbers('angrypig-hit1', { start: 0, end: 4 }),
+                    frameRate: 12,
+                    repeat: 0
+                });
+            }
+
+            if (this.scene.textures.exists('angrypig-hit2')) {
+                anims.create({
+                    key: 'angrypig-hit2',
+                    frames: anims.generateFrameNumbers('angrypig-hit2', { start: 0, end: 4 }),
+                    frameRate: 12,
                     repeat: 0
                 });
             }
