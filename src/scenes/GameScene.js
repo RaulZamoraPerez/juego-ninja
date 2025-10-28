@@ -1,3 +1,4 @@
+
 import AssetManager from '../managers/AssetManager.js';
 import PlayerManager from '../managers/PlayerManager.js';
 import EnemyManager from '../managers/EnemyManager.js';
@@ -48,179 +49,50 @@ class GameScene extends Phaser.Scene {
     }
 
     // Muestra la secuencia de mensajes de Motocle uno tras otro
-showMotocleSequence() {
-    if (!this.motocle || !this.motocle.active) return;
-    if (!this.motocleMessages || !this.motocleMessages.length) this.initMotocleMessages();
-    let idx = 0;
-    const showNext = () => {
-        if (!this.scene.isActive()) return;
-        if (idx >= this.motocleMessages.length) return;
-        const msg = this.motocleMessages[idx];
-        
-        // Destruir el cuadro de diálogo anterior
-        if (this.motocleDialogBubble) {
-            if (this.motocleDialogBubble.floatTween) {
-                this.motocleDialogBubble.floatTween.stop();
-                this.motocleDialogBubble.floatTween.remove();
-            }
-            if (this.motocleDialogBubble.container) {
-                this.motocleDialogBubble.container.destroy();
-            }
-            if (this.motocleDialogBubble.pointer) {
-                this.motocleDialogBubble.pointer.destroy();
-            }
-            this.motocleDialogBubble = null;
-        }
-        
-        const mx = this.motocle.x;
-        const my = this.motocle.y - this.motocle.displayHeight;
-        
-        // Configuración
-        const padding = 18;
-        const maxWidth = 300;
-        
-        // Crear texto temporal COMPLETO para medir correctamente
-        const tempText = this.add.text(0, 0, msg.text, {
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '15px',
-            color: '#2c3e50',
-            align: 'center',
-            wordWrap: { width: maxWidth - padding * 2 },
-            lineSpacing: 4,
-        }).setOrigin(0.5, 0.5);
-        
-        // Obtener dimensiones reales del texto renderizado
-        const bounds = tempText.getBounds();
-        const textWidth = bounds.width;
-        const textHeight = bounds.height;
-        tempText.destroy();
-        
-        // Calcular dimensiones del cuadro con padding
-        const boxWidth = Math.min(textWidth + padding * 2, maxWidth);
-        const boxHeight = textHeight + padding * 2;
-        
-        // Posición Y del cuadro (arriba del personaje)
-        const boxY = my - boxHeight - 15;
-        
-        // Crear contenedor para el cuadro
-        const container = this.add.container(mx, boxY).setDepth(2000);
-        
-        // Crear fondo del cuadro de diálogo
-        const bg = this.add.graphics();
-        // Sombra
-        bg.fillStyle(0x000000, 0.15);
-        bg.fillRoundedRect(-boxWidth/2 + 2, -boxHeight/2 + 2, boxWidth, boxHeight, 12);
-        // Fondo blanco
-        bg.fillStyle(0xffffff, 1);
-        bg.fillRoundedRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight, 12);
-        
-        // Borde del cuadro
-        const border = this.add.graphics();
-        border.lineStyle(3, 0x4a90e2, 1);
-        border.strokeRoundedRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight, 12);
-        
-        // Crear texto final centrado
-        const text = this.add.text(0, 0, msg.text, {
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '15px',
-            color: '#2c3e50',
-            align: 'center',
-            wordWrap: { width: maxWidth - padding * 2 },
-            lineSpacing: 4,
-        }).setOrigin(0.5, 0.5);
-        
-        // Agregar elementos al contenedor
-        container.add([bg, border, text]);
-        
-        // Triángulo apuntador (fuera del contenedor)
-        const pointer = this.add.graphics();
-        pointer.setPosition(mx, boxY + boxHeight/2);
-        // Sombra del triángulo
-        pointer.fillStyle(0x000000, 0.15);
-        pointer.fillTriangle(-10, 2, 10, 2, 0, 14);
-        // Triángulo blanco
-        pointer.fillStyle(0xffffff, 1);
-        pointer.fillTriangle(-10, 0, 10, 0, 0, 12);
-        // Borde del triángulo
-        pointer.lineStyle(3, 0x4a90e2, 1);
-        pointer.beginPath();
-        pointer.moveTo(-10, 0);
-        pointer.lineTo(0, 12);
-        pointer.lineTo(10, 0);
-        pointer.strokePath();
-        pointer.setDepth(2000);
-        
-        // Guardar posiciones originales para la flotación
-        const containerStartY = container.y;
-        const pointerStartY = pointer.y;
-        
-        // Animación de entrada
-        container.setAlpha(0).setScale(0.85);
-        pointer.setAlpha(0).setScale(0.85);
-        
-        this.tweens.add({
-            targets: [container, pointer],
-            alpha: 1,
-            scale: 1,
-            duration: 350,
-            ease: 'Back.easeOut',
-        });
-        
-        // Animación de flotación
-        const floatTween = this.tweens.add({
-            targets: [container, pointer],
-            y: '+=2',
-            duration: 1800,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1,
-        });
-        
-        this.motocleDialogBubble = { container, pointer, floatTween };
-        
-        // Configurar scroll
-        try {
-            container.setScrollFactor(1);
-            pointer.setScrollFactor(1);
-            if (this.uiCamera && this.uiCamera.ignore) {
-                this.uiCamera.ignore([container, pointer]);
-            }
-        } catch (e) {}
-        
-        idx++;
-        
-        // Programar el siguiente mensaje
-        this.time.delayedCall(msg.duration, () => {
+    showMotocleSequence() {
+        if (!this.motocle || !this.motocle.active) return;
+        if (!this.motocleMessages || !this.motocleMessages.length) this.initMotocleMessages();
+        let idx = 0;
+        const showNext = () => {
             if (!this.scene.isActive()) return;
-            
-            // Detener flotación
-            if (floatTween) {
-                floatTween.stop();
-                floatTween.remove();
+            if (idx >= this.motocleMessages.length) return;
+            const msg = this.motocleMessages[idx];
+            // destruir texto anterior
+            if (this.motocleDialogBubble && this.motocleDialogBubble.text && this.motocleDialogBubble.text.destroy) {
+                this.motocleDialogBubble.text.destroy();
             }
-            
-            // Animación de salida
-            this.tweens.add({
-                targets: [container, pointer],
-                alpha: 0,
-                scale: 0.85,
-                duration: 250,
-                ease: 'Power2',
-                onComplete: () => {
-                    container.destroy();
-                    pointer.destroy();
-                    this.motocleDialogBubble = null;
-                    
-                    // Mostrar el siguiente mensaje
-                    if (idx < this.motocleMessages.length) {
-                        showNext();
+            const mx = this.motocle.x;
+            const my = this.motocle.y - this.motocle.displayHeight;
+            const text = this.add.text(mx, my - 30, msg.text, {
+                font: '20px Arial',
+                color: '#222',
+                fontStyle: 'bold',
+                backgroundColor: '#fff',
+                padding: { x: 12, y: 6 },
+                align: 'center',
+                wordWrap: { width: 420 }
+            }).setOrigin(0.5, 1).setDepth(2000);
+            this.motocleDialogBubble = { text };
+            try {
+                text.setScrollFactor(1);
+                if (this.uiCamera && this.uiCamera.ignore) this.uiCamera.ignore(text);
+            } catch (e) {}
+
+            idx++;
+            this.time.delayedCall(msg.duration, () => {
+                if (!this.scene.isActive()) return;
+                if (idx < this.motocleMessages.length) {
+                    showNext();
+                } else {
+                    if (this.motocleDialogBubble && this.motocleDialogBubble.text && this.motocleDialogBubble.text.destroy) {
+                        this.motocleDialogBubble.text.destroy();
+                        this.motocleDialogBubble = null;
                     }
-                },
+                }
             });
-        });
-    };
-    showNext();
-}
+        };
+        showNext();
+    }
     constructor() {
         super('GameScene');
         this.gameState = {
@@ -389,9 +261,6 @@ showMotocleSequence() {
         this.createCoins();
         this.enemyManager.createEnemies();
         this.createItems();
-
-        // Crear AngryPigs adicionales para Nivel 1
-        this.addAngryPigsLevel1();
 
         // Setup final
         this.setupPhysics();
@@ -726,43 +595,6 @@ showMotocleSequence() {
         });
     }
 
-    addAngryPigsLevel1() {
-        const angryPigTexture = this.textures.exists('angrypig-idle') ? 'angrypig-idle' : 'gallinaFallback';
-        
-        const pigPositions = [
-            { x: 500, y: 400 },
-            { x: 1000, y: 380 },
-            { x: 1500, y: 300 }
-        ];
-        
-        pigPositions.forEach(pos => {
-            const pig = this.enemies.create(pos.x, pos.y, angryPigTexture);
-            pig.setBounce(0.1);
-            pig.setCollideWorldBounds(true);
-            pig.setVelocity(Phaser.Math.Between(-60, 60), 0);
-            pig.health = 50; // Vida media para nivel 1
-            pig.damage = 15; // Daño moderado
-            pig.enemyType = 'angrypig';
-            pig.setScale(1.2);
-            pig.isLevel2 = false; // Marcar como nivel 1
-            
-            // Propiedades específicas del AngryPig
-            pig.isAngry = false;
-            pig.hasAngryTint = false;
-            pig.patrolTimer = 0;
-            pig.randomMoveTimer = 0;
-            pig.angryStartTime = 0;
-            
-            if (this.anims.exists('angrypig-idle')) {
-                pig.anims.play('angrypig-idle', true);
-            }
-            
-            console.log(`🐷 AngryPig Nivel 1 creado en (${pos.x}, ${pos.y})`);
-        });
-        
-        console.log(`✅ ${pigPositions.length} AngryPigs agregados al Nivel 1`);
-    }
-
     setupPhysics() {
         // Colisiones
     this.physics.add.collider(this.player, this.platforms);
@@ -799,56 +631,18 @@ showMotocleSequence() {
         this.uiManager.updateCoins();
         
         if (this.gameState.coinsCollected >= this.gameState.totalCoins) {
-            this.showVictoryMessage();
+            this.uiManager.showVictoryMessage();
         }
     }
 
-    showVictoryMessage() {
-        console.log("🏆 NIVEL 1 COMPLETADO!");
-        
-        const victoryText = this.add.text(400, 200, '¡NIVEL COMPLETADO!', {
-            font: '36px Arial',
-            fill: '#FFD700',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3000);
-        
-        const continueText = this.add.text(400, 250, 'Presiona ESPACIO para el Nivel 2', {
-            font: '18px Arial',
-            fill: '#FFFFFF'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3000);
-        
-        // Permitir avanzar al nivel 2
-        const advanceToLevel2 = () => {
-            if (this.keys.SPACE && Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
-                this.scene.start('Level2Scene', {
-                    score: this.gameState.score,
-                    health: this.gameState.health,
-                    coinsCollected: 0, // Resetear monedas para el nuevo nivel
-                    enemiesKilled: this.gameState.enemiesKilled
-                });
-            }
-        };
-        
-        // Agregar listener para avanzar
-        this.input.keyboard.on('keydown-SPACE', () => {
-            this.scene.start('Level2Scene', {
-                score: this.gameState.score,
-                health: this.gameState.health,
-                coinsCollected: 0,
-                enemiesKilled: this.gameState.enemiesKilled
-            });
-        });
-        
-        // Auto-avanzar después de 5 segundos si no presiona nada
-        this.time.delayedCall(5000, () => {
-            this.scene.start('Level2Scene', {
-                score: this.gameState.score,
-                health: this.gameState.health,
-                coinsCollected: 0,
-                enemiesKilled: this.gameState.enemiesKilled
-            });
-        });
+    collectItem(player, item) {
+        if (item.itemType === 'health') {
+            item.destroy();
+            player.health = Math.min(player.health + 50, this.gameState.maxHealth);
+            this.gameState.health = player.health;
+            this.uiManager.updateHealth();
+            console.log("💚 Vida restaurada!");
+        }
     }
 
     gameOver() {
