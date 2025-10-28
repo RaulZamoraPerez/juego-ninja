@@ -63,9 +63,10 @@ class Level2Scene extends Phaser.Scene {
         this.uiManager = new UIManager(this);
 
         // ✅ CONFIGURAR MUNDO MÁS GRANDE PARA 1000x600
-        const { width, height } = this.sys.game.config;
-        const worldWidth = 4000; // Más grande para pantalla de 1000px
-        this.physics.world.setBounds(0, 0, worldWidth, height);
+    const { width, height } = this.sys.game.config;
+    const worldWidth = 4000; // Más grande para pantalla de 1000px
+    this.levelWorldWidth = worldWidth;
+    this.physics.world.setBounds(0, 0, worldWidth, height);
 
         console.log(`🌍 Mundo configurado: ${worldWidth}x${height}`);
 
@@ -95,6 +96,13 @@ class Level2Scene extends Phaser.Scene {
         this.uiCamera.ignore([]);
 
         this.uiManager.createUI();
+        // Asegurar que la cámara de UI ignore los elementos del mundo (como en GameScene)
+        try {
+            if (this.uiManager.uiContainer) {
+                this.uiCamera.ignore(this.children.list.filter(obj => !this.uiManager.uiContainer.list.includes(obj)));
+            }
+        } catch (e) {}
+
         this.setupCamera();
 
         // Efectos de fuego más intensos para nivel 2
@@ -213,11 +221,7 @@ class Level2Scene extends Phaser.Scene {
                 { x: 1700, y: 480, tilesX: 3, tilesY: 2 },   // Plataforma flotante
                 { x: 2000, y: 250, tilesX: 6, tilesY: 3 },   // Plataforma muy alta
                 { x: 2400, y: 400, tilesX: 4, tilesY: 3 },   // Plataforma intermedia
-                { x: 2800, y: 350, tilesX: 8, tilesY: 4 },   // Plataforma final
-                    // Extensiones hacia la derecha para permitir scroll y más juego
-                { x: 3200, y: 420, tilesX: 6, tilesY: 3 },   // Nueva sección derecha
-                { x: 3600, y: 360, tilesX: 6, tilesY: 3 },   // Plataforma derecha adicional
-                { x: 3800, y: 300, tilesX: 5, tilesY: 3 }    // Remate final cerca del borde
+                { x: 2800, y: 350, tilesX: 8, tilesY: 4 }    // Plataforma final
             ];
             
             platformConfigs.forEach(config => {
@@ -246,9 +250,7 @@ class Level2Scene extends Phaser.Scene {
         const coinPositions = [
             { x: 600, y: 400 }, { x: 900, y: 330 }, { x: 1300, y: 270 },
             { x: 1700, y: 430 }, { x: 2000, y: 200 }, { x: 2400, y: 350 },
-            { x: 2600, y: 150 }, { x: 2800, y: 300 },
-            // Monedas a la derecha para explorar
-            { x: 3200, y: 380 }, { x: 3400, y: 320 }, { x: 3600, y: 280 }, { x: 3800, y: 260 }
+            { x: 2600, y: 150 }, { x: 2800, y: 300 }
         ];
         
         coinPositions.forEach(pos => {
@@ -288,12 +290,7 @@ class Level2Scene extends Phaser.Scene {
             { x: 2500, y: 420, type: 'rino' },
             { x: 2700, y: 100, type: 'bluebird' },
             { x: 2900, y: 380, type: 'angrypig' }, // AngryPig final
-            { x: 3000, y: 450, type: 'skull' },    
-            // Enemigos extra en la parte derecha para dar más juego
-            { x: 3200, y: 400, type: 'angrypig' },
-            { x: 3400, y: 200, type: 'bluebird' },
-            { x: 3600, y: 380, type: 'rino' },
-            { x: 3800, y: 300, type: 'skull' }
+            { x: 3000, y: 450, type: 'skull' }     
         ];
 
         enemyPositions.forEach((pos, index) => {
@@ -398,9 +395,7 @@ class Level2Scene extends Phaser.Scene {
         // Más pociones debido a la mayor dificultad
         const itemPositions = [
             { x: 1000, y: 200 }, { x: 1500, y: 150 }, 
-            { x: 2100, y: 100 }, { x: 2600, y: 250 },
-            // Pocas pociones hacia el final para riesgo/recompensa
-            { x: 3200, y: 220 }, { x: 3600, y: 180 }, { x: 3850, y: 260 }
+            { x: 2100, y: 100 }, { x: 2600, y: 250 }
         ];
         
         itemPositions.forEach(pos => {
@@ -598,11 +593,12 @@ class Level2Scene extends Phaser.Scene {
     }
 
     setupCamera() {
-        const worldWidth = 4000;
+        const worldWidth = this.levelWorldWidth || 4000;
         this.cameras.main.setBounds(0, 0, worldWidth, this.sys.game.config.height);
         this.cameras.main.startFollow(this.player);
         this.cameras.main.setLerp(0.1, 0.1);
-        this.cameras.main.setZoom(1.3); // Zoom ligeramente menor para ver más área
+        // Usar mismo zoom que GameScene para consistencia
+        this.cameras.main.setZoom(1.5);
     }
 
     collectCoin(player, coin) {
