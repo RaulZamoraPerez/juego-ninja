@@ -1,0 +1,37 @@
+class CameraController {
+    constructor(scene) {
+        this.scene = scene;
+        this.camera = scene.cameras.main;
+    }
+
+    focusOn(target, offsetX = 0, offsetY = 0) {
+        this.camera.startFollow(target, true, 0.1, 0.1);
+        this.camera.setFollowOffset(offsetX, offsetY);
+    }
+
+    shakeCamera(intensity = 0.05, duration = 500) {
+        this.camera.shake(duration, intensity);
+    }
+
+    setZoom(zoomLevel) {
+        this.camera.setZoom(zoomLevel);
+    }
+
+    resetCamera() {
+        this.camera.stopFollow();
+        this.camera.setScroll(0, 0);
+        this.camera.setZoom(1);
+    }
+
+    panTo(x, y, duration = 1000) {
+        this.scene.tweens.add({
+            targets: this.camera,
+            scrollX: x,
+            scrollY: y,
+            duration: duration,
+            ease: 'Power1',
+        });
+    }
+}
+
+export default CameraController;

@@ -1,0 +1,64 @@
+{
+    "camera_movements": [
+        {
+            "name": "intro_zoom_in",
+            "duration": 2000,
+            "start_position": {
+                "x": 0,
+                "y": 0,
+                "zoom": 1.5
+            },
+            "end_position": {
+                "x": 400,
+                "y": 300,
+                "zoom": 1.0
+            },
+            "ease": "Power2"
+        },
+        {
+            "name": "focus_on_motocle",
+            "duration": 3000,
+            "start_position": {
+                "x": 400,
+                "y": 300,
+                "zoom": 1.0
+            },
+            "end_position": {
+                "x": 400,
+                "y": 250,
+                "zoom": 1.0
+            },
+            "ease": "Sine.easeInOut"
+        },
+        {
+            "name": "pan_to_background",
+            "duration": 2500,
+            "start_position": {
+                "x": 400,
+                "y": 250,
+                "zoom": 1.0
+            },
+            "end_position": {
+                "x": 800,
+                "y": 250,
+                "zoom": 1.0
+            },
+            "ease": "Linear"
+        },
+        {
+            "name": "return_to_player",
+            "duration": 2000,
+            "start_position": {
+                "x": 800,
+                "y": 250,
+                "zoom": 1.0
+            },
+            "end_position": {
+                "x": 400,
+                "y": 300,
+                "zoom": 1.5
+            },
+            "ease": "Power2"
+        }
+    ]
+}

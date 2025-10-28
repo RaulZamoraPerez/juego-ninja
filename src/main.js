@@ -2,6 +2,7 @@ import MenuScene from './scenes/MenuScene.js';
 import IntroScene from './scenes/IntroScene.js';
 import GameScene from './scenes/GameScene.js';
 import GameOverScene from './scenes/GameOverScene.js'; // ✅ IMPORTAR
+import Level2Scene from './scenes/Level2Scene.js'; // ✅ IMPORTAR
 
 console.log("🚀 Iniciando Ninja Rescue...");
 
@@ -17,7 +18,7 @@ const config = {
             debug: false
         }
     },
-    scene: [MenuScene, IntroScene, GameScene, GameOverScene], // ✅ AGREGAR AL ARRAY
+    scene: [MenuScene, IntroScene, GameScene, Level2Scene, GameOverScene], // ✅ AGREGAR AL ARRAY
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
