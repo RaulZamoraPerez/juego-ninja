@@ -42,6 +42,9 @@ class Level2Scene extends Phaser.Scene {
         
         // Cargar fondo específico del nivel 2 (opcional)
         this.load.image('level2-bg', 'assets/image.png');
+        // Cargar sprites de Motocle para Nivel 2 (mismo set que en GameScene)
+        this.load.spritesheet('motocle_run', 'assets/motocle/Motocle.png', { frameWidth: 290, frameHeight: 262 });
+        this.load.spritesheet('motocle_quieto2', 'assets/motocle/motocle_quieto2.png', { frameWidth: 255, frameHeight: 270 });
         
         // Asegurar que tenemos el fondo del nivel 1 como fallback
         if (!this.textures.exists('sky')) {
@@ -81,6 +84,10 @@ class Level2Scene extends Phaser.Scene {
         this.playerManager.createCompanion();
         this.companionMaxHealth = 200;
         this.companionHealth = 200;
+        // Crear Motocle como tercer personaje (player, amigo, motocle)
+        try {
+            this.createMotocle();
+        } catch (e) { console.log('Error creando Motocle en Level2:', e); }
         
         this.createLevel2Coins();
         this.createLevel2Enemies();
@@ -501,6 +508,11 @@ class Level2Scene extends Phaser.Scene {
         if (this.companion && this.companion.active) {
             this.playerManager.handleCompanionMovement && this.playerManager.handleCompanionMovement();
         }
+
+        // Actualizar Motocle (IA local) si existe
+        if (this.motocle && this.motocle.active) {
+            try { this.updateMotocleFollow(); } catch (e) { /* swallow */ }
+        }
         
         this.playerManager.handleAnimations();
         this.enemyManager.updateEnemies();
@@ -579,15 +591,26 @@ class Level2Scene extends Phaser.Scene {
     setupPhysics() {
         this.physics.add.collider(this.player, this.platforms);
         this.physics.add.collider(this.companion, this.platforms);
+        // Asegurar que Motocle pisa las plataformas si existe
+        if (this.motocle) {
+            try { this.physics.add.collider(this.motocle, this.platforms); } catch(e) {}
+        }
         this.physics.add.collider(this.coins, this.platforms);
         this.physics.add.collider(this.enemies, this.platforms);
         this.physics.add.collider(this.items, this.platforms);
 
         this.physics.add.overlap(this.player, this.coins, this.collectCoin, null, this);
         this.physics.add.overlap(this.companion, this.coins, this.collectCoin, null, this);
+        // Permitir que Motocle también recoja monedas/colisiones si es necesario
+        if (this.motocle) {
+            try { this.physics.add.overlap(this.motocle, this.coins, this.collectCoin, null, this); } catch(e) {}
+        }
         this.physics.add.overlap(this.player, this.items, this.collectItem, null, this);
         this.physics.add.overlap(this.player, this.enemies, this.enemyManager.hitEnemy.bind(this.enemyManager), null, this);
         this.physics.add.overlap(this.companion, this.enemies, this.hitCompanion, null, this);
+        if (this.motocle) {
+            try { this.physics.add.overlap(this.motocle, this.enemies, this.hitMotocle, null, this); } catch(e) {}
+        }
         
         console.log("✅ Físicas Nivel 2 configuradas");
     }
@@ -599,6 +622,126 @@ class Level2Scene extends Phaser.Scene {
         this.cameras.main.setLerp(0.1, 0.1);
         // Usar mismo zoom que GameScene para consistencia
         this.cameras.main.setZoom(1.5);
+    }
+
+    // --- Motocle helper methods (Level 2 companion bot) ---
+    createMotocle() {
+        // Si no hay assets, no crear Motocle
+        if (!this.textures.exists('motocle_run') && !this.textures.exists('motocle_quieto2')) {
+            console.log('Motocle sprites no encontrados — no se creará Motocle en Nivel 2');
+            return;
+        }
+
+        // Crear animaciones si no existen
+        try {
+            if (!this.anims.exists('motocle_run_anim') && this.anims.exists('motocle_run')) {
+                this.anims.create({ key: 'motocle_run_anim', frames: this.anims.generateFrameNumbers('motocle_run', { start: 0, end: 2 }), frameRate: 6, repeat: -1 });
+            }
+            if (!this.anims.exists('motocle_quieto2_anim') && this.anims.exists('motocle_quieto2')) {
+                this.anims.create({ key: 'motocle_quieto2_anim', frames: [{ key: 'motocle_quieto2', frame: 0 }], frameRate: 1, repeat: -1 });
+            }
+        } catch (e) { console.log('Error creando anims motocle:', e); }
+
+        const PLAYER_BASE_Y = 450;
+        const startX = -220;
+        const scale = 0.16;
+
+        this.motocle = this.physics.add.sprite(startX, PLAYER_BASE_Y, this.textures.exists('motocle_run') ? 'motocle_run' : 'motocle_quieto2', 0).setDepth(100);
+        this.motocle.setScale(scale);
+        this.motocle.setBounce(0.2);
+        this.motocle.setCollideWorldBounds(true);
+        this.motocle.setOrigin(0.5, 1);
+        try { this.motocle.body.setOffset(0, this.motocle.height * (1 - this.motocle.originY)); } catch(e) {}
+
+        // entrada corriendo (si existe animación de correr)
+        try { if (this.anims.exists('motocle_run_anim')) this.motocle.play('motocle_run_anim'); } catch(e) {}
+
+        // Tween de entrada (llega a la posición cercana al objetivo actual)
+        const initialTarget = this.getMotocleTarget();
+        const initialTargetX = (initialTarget && initialTarget.x) ? Math.max(120, initialTarget.x - 120) : 320;
+        this.tweens.add({ targets: this.motocle, x: initialTargetX, duration: 2200, ease: 'Power1', onComplete: () => {
+            try { if (this.anims.exists('motocle_quieto2_anim')) this.motocle.play('motocle_quieto2_anim'); } catch(e) {}
+            console.log('Motocle ha entrado en Nivel 2 como compañero bot');
+        }});
+
+        // Vida sencilla para Motocle (se puede ampliar luego)
+        this.motocle.health = 200;
+        this.motocle.isInvulnerable = false;
+    }
+
+    // Devuelve la entidad objetivo actual para Motocle según prioridad: player > companion
+    getMotocleTarget() {
+        if (this.player && this.player.active) return this.player;
+        if (this.companion && this.companion.active) return this.companion;
+        return null;
+    }
+
+    updateMotocleFollow() {
+        if (!this.motocle || !this.motocle.body) return;
+
+        const target = this.getMotocleTarget();
+        if (!target) {
+            // No hay objetivo vivo: detenerse
+            this.motocle.setVelocityX(0);
+            try { if (this.anims.exists('motocle_quieto2_anim')) this.motocle.play('motocle_quieto2_anim', true); } catch(e) {}
+            return;
+        }
+
+        // Seguir al objetivo seleccionado
+        const followDistance = 80;
+        const maxSpeed = 140;
+        const targetX = target.x - followDistance;
+        const dx = targetX - this.motocle.x;
+        const desiredVx = Phaser.Math.Clamp(dx * 2, -maxSpeed, maxSpeed);
+        const currentVx = this.motocle.body.velocity.x || 0;
+        const newVx = Phaser.Math.Linear(currentVx, desiredVx, 0.12);
+        this.motocle.setVelocityX(newVx);
+
+        // animaciones
+        try {
+            if (Math.abs(newVx) > 10) {
+                if (this.anims.exists('motocle_run_anim')) this.motocle.play('motocle_run_anim', true);
+            } else {
+                if (this.anims.exists('motocle_quieto2_anim')) this.motocle.play('motocle_quieto2_anim', true);
+            }
+        } catch (e) {}
+
+        // Flip según la dirección hacia el objetivo
+        try { if (newVx < -10) this.motocle.setFlipX(true); else if (newVx > 10) this.motocle.setFlipX(false); } catch(e) {}
+
+        // Saltos: si el objetivo salta y está cerca, motocle salta
+        try {
+            const targetJumping = target.body && target.body.velocity && target.body.velocity.y < -50;
+            const closeEnough = Math.abs(target.x - this.motocle.x) < 140;
+            if (targetJumping && closeEnough && this.motocle.body.touching.down) {
+                this.motocle.setVelocityY(-330);
+            }
+            if ((this.motocle.body.blocked.left || this.motocle.body.blocked.right) && this.motocle.body.touching.down) {
+                this.motocle.setVelocityY(-300);
+            }
+        } catch (e) {}
+    }
+
+    hitMotocle(motocle, enemy) {
+        if (!motocle || !enemy) return;
+        if (!motocle.isInvulnerable) {
+            motocle.health = motocle.health === undefined ? 200 : motocle.health;
+            motocle.health -= enemy.damage || 10;
+            motocle.isInvulnerable = true;
+            motocle.setTint(0xff0000);
+            const pushForce = motocle.x < enemy.x ? -200 : 200;
+            motocle.setVelocityX(pushForce);
+            motocle.setVelocityY(-100);
+            this.time.delayedCall(1200, () => { if (motocle && motocle.active) { motocle.clearTint(); motocle.isInvulnerable = false; } });
+            if (motocle.health <= 0) {
+                motocle.setActive(false).setVisible(false);
+                console.log('💀 Motocle eliminado');
+                // Si los demás también están muertos, game over
+                if ((!this.player || !this.player.active) && (!this.companion || !this.companion.active)) {
+                    this.gameOver();
+                }
+            }
+        }
     }
 
     collectCoin(player, coin) {
