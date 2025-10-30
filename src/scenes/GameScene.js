@@ -18,6 +18,34 @@ class GameScene extends Phaser.Scene {
         // No hacer nada: se elimina el globo de texto de Motocle
     }
 
+    // Mostrar un pequeño texto por encima del item indicando que se puede leer
+    // opener puede ser this.player o this.companion (determina la tecla mostrada)
+    showItemPrompt(item, opener = null) {
+        if (!item || item._promptShown) return;
+        const px = item.x;
+        const py = item.y - (item.displayHeight || 24) - 20;
+        const label = (opener === this.companion) ? 'Presiona Y para leer' : 'Presiona E para leer';
+        this._itemPromptText = this.add.text(px, py, label, {
+            font: '16px Arial',
+            fill: '#fff',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            padding: { x: 8, y: 4 }
+        }).setOrigin(0.5).setScrollFactor(1).setDepth(4000);
+        item._promptShown = true;
+    }
+
+    hideItemPrompt() {
+        if (this._itemPromptText) {
+            this._itemPromptText.destroy();
+            this._itemPromptText = null;
+        }
+        if (this._nearbyItem) {
+            this._nearbyItem._promptShown = false;
+        }
+        // Limpiar opener cercano cuando se oculta el prompt
+        this._nearbyOpener = null;
+    }
+
     destroyMotocleDialog() {
         if (this.motocleDialogBubble) {
             if (this.motocleDialogBubble.bg && this.motocleDialogBubble.bg.destroy) this.motocleDialogBubble.bg.destroy();
@@ -241,6 +269,17 @@ showMotocleSequence() {
     // Cargar sprites de Motocle (solo una vez, aquí)
     this.load.spritesheet('motocle_run', 'assets/motocle/Motocle.png', { frameWidth: 290, frameHeight: 262 }); // 870/290=3 frames
     this.load.spritesheet('motocle_quieto2', 'assets/motocle/motocle_quieto2.png', { frameWidth: 255, frameHeight: 270 });
+    // Imagen que se mostrará en el modal debajo del texto
+    this.load.image('motocle_riendo', 'assets/motocle/motocle_riendo.jpg');
+    // Cargar frames para animación del libro (Small Map 1)
+    this.load.image('book_anim_1', 'assets/Items/mas/Treasure Hunters/Small Maps/Small Map 1/01.png');
+    this.load.image('book_anim_2', 'assets/Items/mas/Treasure Hunters/Small Maps/Small Map 1/02.png');
+    this.load.image('book_anim_3', 'assets/Items/mas/Treasure Hunters/Small Maps/Small Map 1/03.png');
+    this.load.image('book_anim_4', 'assets/Items/mas/Treasure Hunters/Small Maps/Small Map 1/04.png');
+    this.load.image('book_anim_5', 'assets/Items/mas/Treasure Hunters/Small Maps/Small Map 1/05.png');
+    this.load.image('book_anim_6', 'assets/Items/mas/Treasure Hunters/Small Maps/Small Map 1/06.png');
+    this.load.image('book_anim_7', 'assets/Items/mas/Treasure Hunters/Small Maps/Small Map 1/07.png');
+    this.load.image('book_anim_8', 'assets/Items/mas/Treasure Hunters/Small Maps/Small Map 1/08.png');
     }
 
     create() {
@@ -309,6 +348,19 @@ showMotocleSequence() {
         repeat: -1
     });
 
+    // Animación del libro si cargaron las imágenes
+    if (this.textures.exists('book_anim_1')) {
+        this.anims.create({
+            key: 'book_anim',
+            frames: [
+                { key: 'book_anim_1' }, { key: 'book_anim_2' }, { key: 'book_anim_3' }, { key: 'book_anim_4' },
+                { key: 'book_anim_5' }, { key: 'book_anim_6' }, { key: 'book_anim_7' }, { key: 'book_anim_8' }
+            ],
+            frameRate: 6,
+            repeat: -1
+        });
+    }
+
     // Evitar ejecutar la entrada de Motocle más de una vez (guard global)
     if (!window.motocleEntryExecuted) {
         // Esperar unos segundos antes de que Motocle entre corriendo
@@ -363,6 +415,8 @@ showMotocleSequence() {
         
         // Configurar controles primero para que this.keys esté disponible
         this.setupControls();
+    // Tecla para interactuar con objetos (abrir libro)
+    this.eKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
         // Inicializar managers
         this.playerManager = new PlayerManager(this);
@@ -479,6 +533,9 @@ showMotocleSequence() {
         this.zoomStep = 0.1;
         this.minZoom = 0.5;
         this.maxZoom = 2.5;
+    // Teclas de interacción globales
+    this.eKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.yKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Y);
         // Mostrar instrucciones en pantalla
         if (!this.zoomText) {
             this.zoomText = this.add.text(10, 10, 'Zoom: Z (acerca) / X (aleja)', {
@@ -536,6 +593,28 @@ showMotocleSequence() {
         // ESC para menú
         if (this.keys.ESC && Phaser.Input.Keyboard.JustDown(this.keys.ESC)) {
             this.scene.start('MenuScene');
+        }
+        // Interacción con objetos cercanos: abrir libro con la tecla correcta
+        if (this._nearbyItem && !this._bookOpen) {
+            const opener = this._nearbyOpener || this.player;
+            // calcular distancia respecto al actor que está cerca (player o companion)
+            const dist = (opener && opener.x !== undefined)
+                ? Phaser.Math.Distance.Between(opener.x, opener.y, this._nearbyItem.x, this._nearbyItem.y)
+                : Phaser.Math.Distance.Between(this.player.x, this.player.y, this._nearbyItem.x, this._nearbyItem.y);
+            if (dist > 80) {
+                this.hideItemPrompt();
+                this._nearbyItem = null;
+                this._nearbyOpener = null;
+            } else {
+                // Si el opener es el jugador -> tecla E
+                if (opener === this.player && this.eKey && Phaser.Input.Keyboard.JustDown(this.eKey)) {
+                    this.openBook(this._nearbyItem, this.player);
+                }
+                // Si el opener es el compañero -> tecla Y
+                if (opener === this.companion && this.yKey && Phaser.Input.Keyboard.JustDown(this.yKey)) {
+                    this.openBook(this._nearbyItem, this.companion);
+                }
+            }
         }
         // Zoom dinámico con teclas Z (acercar) y X (alejar) SOLO en la cámara principal (no la de UI)
         let cam = this.cameras.main;
@@ -724,6 +803,223 @@ showMotocleSequence() {
             item.setTint(0xff6b6b);
             item.itemType = 'health';
         });
+
+        // Añadir un libro tirado en el camino
+        const bookX = 1400;
+        const bookY = 430;
+        // Si no existe textura de libro, generar un fallback simple
+        if (!this.textures.exists('bookFallback')) {
+            const g = this.make.graphics({ add: false });
+            g.fillStyle(0xDEB887, 1); // color papel
+            g.fillRoundedRect(0, 0, 64, 48, 6);
+            g.lineStyle(2, 0x8B5A2B, 1);
+            g.strokeRoundedRect(0, 0, 64, 48, 6);
+            g.generateTexture('bookFallback', 64, 48);
+            g.destroy();
+        }
+
+        let book;
+        // Si tenemos la animación del libro, crear sprite animado
+        if (this.anims.exists('book_anim')) {
+            book = this.physics.add.sprite(bookX, bookY, 'book_anim_1');
+            book.play('book_anim');
+            this.items.add(book);
+        } else {
+            book = this.items.create(bookX, bookY, this.textures.exists('book') ? 'book' : 'bookFallback');
+        }
+        book.setScale(1);
+        book.setBounce(0.1);
+        book.itemType = 'book';
+        // Texto que aparecerá al abrir el libro (puedes editarlo)
+    book.bookText = 'Sigue el olor a tacos… y encontrarás el laboratorio de TI perdido de Uttecam.\n\nPD: Trae salsa.';
+        book.setInteractive && book.setInteractive();
+        // banderas para interacción
+        book._promptShown = false;
+    }
+
+    // Manejo de items en GameScene (libro u otros)
+    collectItem(player, item) {
+        if (!item || !item.itemType) return;
+        // Si ya hay un libro abierto, ignorar nuevas overlaps
+        if (this._bookOpen) return;
+        // Si el item está marcado como deshabilitado (por ejemplo mientras se muestra modal), ignorar
+        if (item._disabled) return;
+        if (item.itemType === 'book') {
+            // No abrir automáticamente: tanto jugador como compañero deben pulsar su tecla
+            // Guardar cuál actor está cerca para que update() espere la tecla correcta
+            this._nearbyItem = item;
+            this._nearbyOpener = player; // actor cerca (this.player o this.companion)
+            this.showItemPrompt(item, player);
+            return;
+        }
+
+        // Comportamiento por defecto para items distintos
+        if (item.itemType === 'health') {
+            item.destroy();
+            this.gameState.score += 50;
+            this.uiManager.updateScore && this.uiManager.updateScore();
+        } else {
+            // Destruir item por defecto
+            item.destroy();
+        }
+    }
+
+    // Mostrar overlay con el libro y pausar la jugabilidad
+    openBook(item, opener = null) {
+        if (this._bookOpen) return; // evitar reentradas
+        this._bookOpen = true;
+        this._bookOpener = opener || this.player;
+        // Pausar la lógica del juego: evita que update procese movimiento/enemigos
+        this.isGamePaused = true;
+
+        // Crear overlay en pantalla fija (UI camera)
+        const { width, height } = this.sys.game.config;
+        this.bookOverlay = this.add.container(0, 0).setDepth(5000);
+
+        // Marcar el item como deshabilitado mientras el modal está abierto para evitar re-firing de overlap
+        try {
+            item._disabled = true;
+            if (item.body) item.body.enable = false;
+        } catch(e) {}
+
+        // Ocultar cualquier prompt del item y limpiar la referencia nearby
+        try { this.hideItemPrompt(); } catch(e) {}
+        this._nearbyItem = null;
+
+    const panelW = Math.min(720, width - 80);
+    const panelH = Math.min(420, height - 120);
+    const panelX = (width - panelW) / 2;
+    const panelY = (height - panelH) / 2;
+
+    // Backdrop reducido sólo detrás del panel (no pantalla completa)
+    const panelBackdrop = this.add.rectangle(panelX, panelY, panelW, panelH, 0x000000, 0.55).setOrigin(0, 0);
+    panelBackdrop.setScrollFactor(0);
+    panelBackdrop.setDepth(4999);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0xffffff, 1);
+    panel.fillRoundedRect(panelX, panelY, panelW, panelH, 12);
+    panel.lineStyle(4, 0x8B5A2B, 1);
+    panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 12);
+    panel.setScrollFactor(0);
+    panel.setDepth(5000);
+
+        // Mostrar el texto en la parte superior del panel (se agregará dentro de un contenedor con máscara más abajo)
+
+    // Reservar menos espacio para la imagen para dar más lugar al texto
+    const reservedImageH = Math.min(80, Math.floor(panelH * 0.18)); // altura reservada para la imagen (más pequeña)
+    const textAreaH = panelH - reservedImageH - 48; // espacio para texto (márgenes)
+
+        // Añadir el texto directamente y reducir tamaño si excede el área disponible
+        const content = item.bookText || 'Página en blanco...';
+        const txt = this.add.text(panelX + 20, panelY + 20, content, {
+            fontFamily: 'Georgia, serif',
+            fontSize: '18px',
+            color: '#222222',
+            wordWrap: { width: panelW - 40 }
+        }).setScrollFactor(0).setOrigin(0);
+
+        // Si el texto es más alto que el área permitida, escalarlo ligeramente para que quepa
+        if (txt.height > textAreaH) {
+            const scale = Math.max(0.6, textAreaH / txt.height); // no bajar demasiado la fuente
+            txt.setScale(scale);
+        }
+
+        // Posición de la imagen: debajo del texto (usar displayHeight para considerar el scale)
+        const imgY = panelY + 20 + txt.displayHeight + 8;
+
+        // Añadir la imagen 'motocle_riendo' debajo del texto si está disponible
+        let img = null;
+        if (this.textures.exists('motocle_riendo')) {
+            img = this.add.image(panelX + panelW / 2, imgY, 'motocle_riendo').setScrollFactor(0).setOrigin(0.5, 0);
+            // Ajustar tamaño para que quepa en la porción reservada
+            const maxImgW = panelW - 80;
+            const maxImgH = reservedImageH;
+            const iw = img.width || maxImgW;
+            const ih = img.height || maxImgH;
+            let scale = Math.min(maxImgW / iw, maxImgH / ih, 1);
+            if (scale <= 0) scale = 1;
+            img.setScale(scale * 0.9);
+        }
+
+        const hint = this.add.text(panelX + panelW - 20, panelY + panelH - 24, 'Presiona E o haz clic para cerrar', {
+            font: '14px Arial',
+            fill: '#444'
+        }).setOrigin(1, 0).setScrollFactor(0);
+
+        // Añadir en orden: backdrop (debajo), panel, texto, imagen (si existe) y hint
+        const toAdd = [panelBackdrop, panel, txt];
+        if (img) toAdd.push(img);
+        toAdd.push(hint);
+        this.bookOverlay.add(toAdd);
+
+        // Si existe un contenedor de UI, mover el overlay a ese contenedor
+        try {
+            if (this.uiManager && this.uiManager.uiContainer) {
+                this.uiManager.uiContainer.add(this.bookOverlay);
+            }
+        } catch (e) {
+            console.warn('No se pudo añadir overlay al contenedor UI:', e);
+        }
+
+        // Asegurar que el overlay esté por encima de prompts u otros elementos
+        try { this.bookOverlay.setDepth(10000); } catch(e) {}
+
+        // Capturar input de cierre: ya usamos this.eKey para abrir, así que escuchar E para cerrar también
+        this._bookCloseHandler = () => this.closeBook(item);
+        if (this.eKey) {
+            // usamos 'once' para evitar múltiples listeners
+            this.eKey.once('down', this._bookCloseHandler);
+        }
+        // También cerrar con clic
+        this.input.once('pointerdown', this._bookCloseHandler);
+        // Ocultar prompt si estaba visible y limpiar nearby
+        try { this.hideItemPrompt(); } catch(e) {}
+        this._nearbyItem = null;
+
+        // Si el opener fue el compañero, cerrar automáticamente pasados unos segundos
+        if (opener === this.companion) {
+            try { this._bookAutoClose = this.time.delayedCall(3500, () => this.closeBook(item)); } catch(e) {}
+        }
+    }
+
+    closeBook(item) {
+        if (!this._bookOpen) return;
+        this._bookOpen = false;
+        this.isGamePaused = false;
+
+        // Remover handlers
+        try {
+            if (this._bookCloseHandler && this.eKey) {
+                try { this.eKey.off('down', this._bookCloseHandler); } catch(e) {}
+            }
+        } catch (e) {}
+
+        try { this.input.off('pointerdown', this._bookCloseHandler); } catch(e) {}
+
+        // Destruir overlay
+        if (this.bookOverlay) {
+            this.bookOverlay.destroy();
+            this.bookOverlay = null;
+        }
+
+        // Reactivar el item en el mundo (no lo destruimos, el libro permanece)
+        try {
+            if (item) {
+                // Mantener disabled unos ms para evitar re-trigger inmediato (especialmente si lo abrió el compañero)
+                this.time.delayedCall(400, () => {
+                    try {
+                        item._disabled = false;
+                        if (item.body) item.body.enable = true;
+                        item.setVisible && item.setVisible(true);
+                        item.setActive && item.setActive(true);
+                    } catch (e) {}
+                });
+            }
+        } catch (e) {}
+
+        // Cancelar auto-close si existe
+        try { if (this._bookAutoClose) { this._bookAutoClose.remove(); this._bookAutoClose = null; } } catch(e) {}
     }
 
     addAngryPigsLevel1() {
@@ -776,6 +1072,8 @@ showMotocleSequence() {
     this.physics.add.overlap(this.player, this.coins, this.collectCoin, null, this);
     this.physics.add.overlap(this.companion, this.coins, this.collectCoin, null, this);
     this.physics.add.overlap(this.player, this.items, this.collectItem, null, this);
+    // Permitir que el compañero también interactúe con items (libro)
+    this.physics.add.overlap(this.companion, this.items, this.collectItem, null, this);
     this.physics.add.overlap(this.player, this.enemies, this.enemyManager.hitEnemy.bind(this.enemyManager), null, this);
     // Daño al compañero
     this.physics.add.overlap(this.companion, this.enemies, this.hitCompanion, null, this);
