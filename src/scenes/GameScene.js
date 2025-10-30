@@ -253,8 +253,8 @@ showMotocleSequence() {
         super('GameScene');
         this.gameState = {
             score: 0,
-            health: 200,
-            maxHealth: 200,
+            health: 400,      // VIDA INICIAL MÁS ALTA
+            maxHealth: 400,   // VIDA MÁXIMA MÁS ALTA
             coinsCollected: 0,
             totalCoins: 0,
             enemiesKilled: 0,
@@ -436,6 +436,7 @@ showMotocleSequence() {
 
         // Crear entidades
         this.playerManager.createPlayer();
+this.player.attackDamage = 40; // Daño aumentado (antes era 20 o menos)
         this.playerManager.createCompanion();
         // Vida del compañero (solo en la UI)
         this.companionMaxHealth = 200;
@@ -676,8 +677,7 @@ showMotocleSequence() {
         const currentTime = this.time.now;
         if (currentTime - this.lastHeal > 2000 && 
             this.player.health < this.gameState.maxHealth) {
-            
-            this.player.health += 1;
+            this.player.health += 2; // Recupera 2 en vez de 1
             this.gameState.health = this.player.health;
             this.uiManager.updateHealth();
             this.lastHeal = currentTime;
